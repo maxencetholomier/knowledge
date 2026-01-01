@@ -1,0 +1,33 @@
+#!/bin/bash
+
+set -e
+
+echo "Installing kl on the system..."
+
+go build
+sudo cp ./kl /usr/local/bin/
+
+echo "Generating Man Page..."
+./kl man --quiet
+sudo cp /tmp/kl-man/*.1 /usr/local/man/man1/
+sudo mandb >/dev/null 2>&1
+
+echo "Adding shell completion..."
+
+if command -v bash &>/dev/null; then
+	./kl completion bash | sudo tee /usr/share/bash-completion/completions/kl >/dev/null
+fi
+
+if command -v zsh &>/dev/null; then
+	./kl completion zsh | sudo tee /usr/share/zsh/site-functions/_knowledge >/dev/null
+elif command -v zsh &>/dev/null; then
+	./kl completion zsh | sudo tee /usr/local/share/zsh/site-functions/_knowledge >/dev/null
+fi
+
+if command -v fish &>/dev/null; then
+	echo "Installing fish completion..."
+	./kl completion fish | sudo tee /usr/share/fish/completions/kl.fish >/dev/null
+fi
+
+echo "Installation complete!"
+echo "You can now use 'kl' from anywhere and 'man kl' for documentation."
