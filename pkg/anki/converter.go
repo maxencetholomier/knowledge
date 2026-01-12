@@ -2,15 +2,29 @@ package anki
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/binary"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 
 	genanki "github.com/npcnixel/genanki-go"
 	"github.com/russross/blackfriday/v2"
 )
+
+func generateDeterministicID(noteFilename string) int64 {
+	hash := sha256.Sum256([]byte(noteFilename))
+	id := int64(binary.BigEndian.Uint64(hash[:8]))
+
+	if id < 0 {
+		id = -id
+	}
+	return id % math.MaxInt64
+}
 
 func ConvertNote(notePath string, linkMap map[string]string) (*genanki.Note, []MediaFile, error) {
 	content, err := os.ReadFile(notePath)
@@ -42,11 +56,22 @@ func ConvertNote(notePath string, linkMap map[string]string) (*genanki.Note, []M
 	back = processCodeBlocks(back)
 	backHTML := markdownToHTML(back)
 
-	note := genanki.NewNote(
-		BasicModelID,
-		[]string{front, string(backHTML)},
-		[]string{strings.TrimSuffix(filepath.Base(notePath), ".md")},
-	)
+	noteFilename := strings.TrimSuffix(filepath.Base(notePath), ".md")
+
+	csum := int64(0)
+	for _, c := range front {
+		csum = (csum + int64(c)) % 0xffff
+	}
+
+	note := &genanki.Note{
+		ID:        generateDeterministicID(noteFilename),
+		ModelID:   BasicModelID,
+		Fields:    []string{front, string(backHTML)},
+		Tags:      []string{noteFilename},
+		Modified:  time.Now(),
+		SortField: front,
+		CheckSum:  csum,
+	}
 
 	return note, mediaFiles, nil
 }
