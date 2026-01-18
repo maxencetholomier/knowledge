@@ -2,12 +2,11 @@
 
 Knowledge is a command-line tool for managing [markdown-based notes](./docs/plain-text-importance.md) in a [Zettelkasten](./docs/zettlekasten.md)-style system.
 
-Compared to other [related projects](#related-projects), Knowledge offers native integration with [Joplin](https://github.com/laurent22/joplin) and [Anki](https://github.com/ankitects/anki) for spaced repetition learning.
+Compared to other [related projects](#related-projects), Knowledge offers :
 
-This provides:
-- Note availability on smartphones (read and write access)
+- Note availability on smartphones (read and write access) with [Joplin](https://github.com/laurent22/joplin)
 - Proper version control on computer
-- Spaced repetition learning through Anki
+- Spaced repetition learning through [Anki](https://github.com/ankitects/anki)
 
 For naming and file organization, see the [Conventions Guide](./docs/conventions.md).
 
