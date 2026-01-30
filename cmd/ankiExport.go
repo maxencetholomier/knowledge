@@ -112,11 +112,13 @@ func readNoteList(listFile string) ([]string, error) {
 	defer file.Close()
 
 	var notes []string
+	seen := make(map[string]bool)
 	scanner := bufio.NewScanner(file)
 
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
-		if line != "" && !strings.HasPrefix(line, "#") {
+		if line != "" && !strings.HasPrefix(line, "#") && !seen[line] {
+			seen[line] = true
 			notes = append(notes, line)
 		}
 	}
