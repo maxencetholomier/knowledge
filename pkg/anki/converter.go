@@ -53,6 +53,7 @@ func ConvertNote(notePath string, linkMap map[string]string) (*genanki.Note, []M
 		return nil, nil, fmt.Errorf("image error: %w", err)
 	}
 
+	back = detectAndConvertTables(back)
 	back = processCodeBlocks(back)
 	backHTML := markdownToHTML(back)
 
@@ -112,6 +113,98 @@ func extractBody(content string) string {
 	}
 
 	return strings.TrimSpace(strings.Join(bodyLines, "\n"))
+}
+
+func detectAndConvertTables(content string) string {
+	lines := strings.Split(content, "\n")
+	var result []string
+	i := 0
+
+	for i < len(lines) {
+		line := lines[i]
+
+		if isTableRow(line) && !isSeparatorRow(line) {
+			tableStart := i
+			tableEnd := i
+
+			for j := i; j < len(lines); j++ {
+				if isTableRow(lines[j]) || isSeparatorRow(lines[j]) {
+					tableEnd = j
+				} else if strings.TrimSpace(lines[j]) == "" && j+1 < len(lines) && isTableRow(lines[j+1]) {
+					tableEnd = j
+				} else {
+					break
+				}
+			}
+
+			hasSeparator := false
+			for j := tableStart; j <= tableEnd; j++ {
+				if isSeparatorRow(lines[j]) {
+					hasSeparator = true
+					break
+				}
+			}
+
+			if !hasSeparator && tableEnd > tableStart {
+				result = append(result, lines[tableStart])
+				result = append(result, generateSeparatorRow(lines[tableStart]))
+				for j := tableStart + 1; j <= tableEnd; j++ {
+					result = append(result, lines[j])
+				}
+				i = tableEnd + 1
+				continue
+			}
+		}
+
+		result = append(result, line)
+		i++
+	}
+
+	return strings.Join(result, "\n")
+}
+
+func isTableRow(line string) bool {
+	trimmed := strings.TrimSpace(line)
+	if trimmed == "" {
+		return false
+	}
+	if !strings.Contains(trimmed, "|") {
+		return false
+	}
+	if isSeparatorRow(trimmed) {
+		return false
+	}
+	return true
+}
+
+func isSeparatorRow(line string) bool {
+	trimmed := strings.TrimSpace(line)
+	if trimmed == "" {
+		return false
+	}
+	cleaned := strings.ReplaceAll(trimmed, "|", "")
+	cleaned = strings.ReplaceAll(cleaned, "-", "")
+	cleaned = strings.ReplaceAll(cleaned, ":", "")
+	cleaned = strings.TrimSpace(cleaned)
+	return cleaned == "" && strings.Contains(trimmed, "-")
+}
+
+func generateSeparatorRow(headerRow string) string {
+	parts := strings.Split(headerRow, "|")
+	columnCount := 0
+
+	for _, part := range parts {
+		if strings.TrimSpace(part) != "" {
+			columnCount++
+		}
+	}
+
+	var separators []string
+	for i := 0; i < columnCount; i++ {
+		separators = append(separators, "---")
+	}
+
+	return "| " + strings.Join(separators, " | ") + " |"
 }
 
 func processCodeBlocks(markdown string) string {

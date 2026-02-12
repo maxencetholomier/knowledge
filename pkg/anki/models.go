@@ -90,5 +90,30 @@ img {
 	color: #999999;
 	text-decoration: line-through;
 }
+
+table {
+	border-collapse: collapse;
+	width: 100%;
+	margin: 15px 0;
+}
+
+th, td {
+	border: 1px solid #d0d7de;
+	padding: 8px 12px;
+	text-align: left;
+}
+
+th {
+	background-color: #f6f8fa;
+	font-weight: 600;
+}
+
+tr:nth-child(even) {
+	background-color: #f9f9f9;
+}
+
+tr:hover {
+	background-color: #f0f4f8;
+}
 `
 }
