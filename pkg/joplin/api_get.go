@@ -3,27 +3,14 @@ package joplin
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"kl/pkg/config"
-	"net/http"
+	"kl/pkg/httpclient"
 	"os"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 )
-
-func wrapConnectionError(err error, url string) error {
-	if err != nil && strings.Contains(err.Error(), "connection refused") {
-		platformName := "serveur distant"
-		if strings.Contains(url, "localhost:41184") {
-			platformName = "Joplin"
-		}
-
-		return fmt.Errorf("impossible de se connecter à %s. Veuillez vous assurer que le service est ouvert et accessible", platformName)
-	}
-	return err
-}
 
 func GetField(id string, field string) (string, error) {
 	value, _ := getField(id, field)
@@ -230,23 +217,7 @@ func getResource(id string, name string, index int, DirZet string) error {
 }
 
 func httpGet(url string) ([]byte, error) {
-	resp, err := http.Get(url)
-	if err != nil {
-		return nil, wrapConnectionError(fmt.Errorf("HTTP GET request failed for URL %s: %w", url, err), url)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("Joplin API error (status: %d): %s", resp.StatusCode, string(body))
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response body from %s: %w", url, err)
-	}
-
-	return body, nil
+	return httpclient.Get(url, platformDetector)
 }
 
 func GetNotebookIdByName(notebookName string) (string, error) {
@@ -294,7 +265,7 @@ func GetNotebookField(id string, field string) (string, error) {
 	if !ok {
 		return "", fmt.Errorf("key " + field + " not found in JSON")
 	}
-	
+
 	stringValue, ok := value.(string)
 	if !ok {
 		return "", fmt.Errorf("value for key " + field + " is not a string")

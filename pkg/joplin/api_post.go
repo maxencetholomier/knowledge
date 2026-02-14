@@ -7,21 +7,14 @@ import (
 	"io"
 	"kl/pkg/config"
 	"kl/pkg/files"
+	"kl/pkg/httpclient"
 	"kl/pkg/utils"
 	"mime/multipart"
-	"net/http"
 	"os"
 	"regexp"
 	"strings"
 	"time"
 )
-
-func formatHTTPError(err error, context string, message string) error {
-	if context != "" {
-		return fmt.Errorf("%s for %s: %w", message, context, err)
-	}
-	return fmt.Errorf("%s: %w", message, err)
-}
 
 func isImageResource(fileName string) bool {
 	extension := files.GetFileType(fileName)
@@ -133,32 +126,8 @@ func PostResourceFromBody(input string, DirZet string) error {
 }
 
 func httpSend(method string, url string, b bytes.Buffer, contentType string, context string) error {
-	var req *http.Request
-	var err error
-
-	req, err = http.NewRequest(method, url, &b)
-	if err != nil {
-		return formatHTTPError(err, context, "failed to create request")
-	}
-
-	req.Header.Set("Content-Type", contentType)
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return wrapConnectionError(formatHTTPError(err, context, "HTTP request failed"), url)
-	}
-	defer resp.Body.Close()
-
-	if resp.Status != "200 OK" {
-		body, _ := io.ReadAll(resp.Body)
-		if context != "" {
-			return fmt.Errorf("Joplin API error for %s (status: %s): %s", context, resp.Status, string(body))
-		}
-		return fmt.Errorf("Joplin API error (status: %s): %s", resp.Status, string(body))
-	}
-
-	return nil
+	_, err := httpclient.Send(method, url, &b, contentType, context, platformDetector)
+	return err
 }
 
 func get_data(method string, filename string, DirZet string, notebookId string) ([]byte, error) {

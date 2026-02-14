@@ -2,24 +2,14 @@ package joplin
 
 import (
 	"kl/pkg/config"
-	"net/http"
+	"kl/pkg/httpclient"
 	"time"
 )
 
+var platformDetector = &JoplinPlatformDetector{}
+
 func httpDelete(url string) error {
-	req, err := http.NewRequest("DELETE", url, nil)
-	if err != nil {
-		return err
-	}
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return wrapConnectionError(err, url)
-	}
-	defer resp.Body.Close()
-
-	return nil
+	return httpclient.Delete(url, platformDetector)
 }
 
 func deleteFromJoplin(endpoint string, id string, queryParams string) error {
