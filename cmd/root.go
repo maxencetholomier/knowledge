@@ -111,9 +111,7 @@ func Execute() {
 	rootCmd.PersistentFlags().BoolVarP(&FzfFlag, "fzf", "f", false, "activate fzf")
 	rootCmd.PersistentFlags().BoolVarP(&NoFzfFlag, "no-fzf", "z", false, "deactivate fzf")
 	rootCmd.PersistentFlags().StringVarP(&DirZetFlag, "dir", "d", "", "define zet repo")
-	err := rootCmd.Execute()
-	if err != nil {
-		fmt.Println(err)
+	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
 }
