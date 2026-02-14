@@ -6,14 +6,7 @@ import (
 	"time"
 )
 
-func DeleteResourceFromJoplin(id string) error {
-	time.Sleep(200)
-	token, err := config.GetJoplinToken()
-	if err != nil {
-		return err
-	}
-	url := "http://localhost:41184/resources/" + id + "?token=" + token
-
+func httpDelete(url string) error {
 	req, err := http.NewRequest("DELETE", url, nil)
 	if err != nil {
 		return err
@@ -29,25 +22,21 @@ func DeleteResourceFromJoplin(id string) error {
 	return nil
 }
 
-func DeleteNoteFromJoplin(id string) error {
+func deleteFromJoplin(endpoint string, id string, queryParams string) error {
 	time.Sleep(200)
 	token, err := config.GetJoplinToken()
 	if err != nil {
 		return err
 	}
-	url := "http://localhost:41184/notes/" + id + "?token=" + token + "&permanent=1"
+	url := "http://localhost:41184/" + endpoint + "/" + id + "?token=" + token + queryParams
 
-	req, err := http.NewRequest("DELETE", url, nil)
-	if err != nil {
-		return err
-	}
+	return httpDelete(url)
+}
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
+func DeleteResourceFromJoplin(id string) error {
+	return deleteFromJoplin("resources", id, "")
+}
 
-	return nil
+func DeleteNoteFromJoplin(id string) error {
+	return deleteFromJoplin("notes", id, "&permanent=1")
 }
