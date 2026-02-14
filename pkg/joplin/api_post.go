@@ -23,118 +23,70 @@ func formatHTTPError(err error, context string, message string) error {
 	return fmt.Errorf("%s: %w", message, err)
 }
 
-func PostToJoplin(fileName string, DirZet string) error {
-
-	time.Sleep(200)
+func isImageResource(fileName string) bool {
 	extension := files.GetFileType(fileName)
-
-	if utils.ItemInSlice([]string{"png", "jpg", "svg"}, extension) {
-
-		var b bytes.Buffer
-		writer := multipart.NewWriter(&b)
-
-		err := getBytes(fileName, &b, writer, DirZet)
-		if err != nil {
-			return err
-		}
-
-		token, err := config.GetJoplinToken()
-		if err != nil {
-			return err
-		}
-		url := "http://localhost:41184/resources?token=" + token
-
-		return httpSend("POST", url, b, writer.FormDataContentType(), fmt.Sprintf("resource %s", fileName))
-	} else {
-		token, err := config.GetJoplinToken()
-		if err != nil {
-			return err
-		}
-		url := "http://localhost:41184/notes?token=" + token
-
-		jsonData, err := get_data("POST", fileName, DirZet, "")
-		if err != nil {
-			return err
-		}
-
-		b := bytes.NewBuffer(jsonData)
-		return httpSend("POST", url, *b, "application/json", fmt.Sprintf("note %s", fileName))
-	}
-
+	return utils.ItemInSlice([]string{"png", "jpg", "svg"}, extension)
 }
 
-func PostToJoplinWithNotebook(fileName string, DirZet string, notebookId string) error {
-
-	time.Sleep(200)
-	extension := files.GetFileType(fileName)
-
-	if utils.ItemInSlice([]string{"png", "jpg", "svg"}, extension) {
-
-		var b bytes.Buffer
-		writer := multipart.NewWriter(&b)
-
-		err := getBytes(fileName, &b, writer, DirZet)
-		if err != nil {
-			return err
-		}
-
-		token, err := config.GetJoplinToken()
-		if err != nil {
-			return err
-		}
-		url := "http://localhost:41184/resources?token=" + token
-
-		return httpSend("POST", url, b, writer.FormDataContentType(), fmt.Sprintf("resource %s", fileName))
-	} else {
-		token, err := config.GetJoplinToken()
-		if err != nil {
-			return err
-		}
-		url := "http://localhost:41184/notes?token=" + token
-
-		jsonData, err := get_data("POST", fileName, DirZet, notebookId)
-		if err != nil {
-			return err
-		}
-
-		b := bytes.NewBuffer(jsonData)
-		return httpSend("POST", url, *b, "application/json", fmt.Sprintf("note %s", fileName))
-	}
-
-}
-
-func PutNoteToJoplin(fileName string, DirZet string) error {
-
-	id := EncryptFilename(fileName, 0)
-
+func buildJoplinURL(endpoint string, queryParams string) (string, error) {
 	token, err := config.GetJoplinToken()
+	if err != nil {
+		return "", err
+	}
+	return "http://localhost:41184/" + endpoint + "?token=" + token + queryParams, nil
+}
+
+func postToJoplin(fileName string, DirZet string, notebookId string, index int) error {
+	time.Sleep(200)
+
+	if isImageResource(fileName) {
+		var b bytes.Buffer
+		writer := multipart.NewWriter(&b)
+
+		err := getBytes(fileName, &b, writer, DirZet, index)
+		if err != nil {
+			return err
+		}
+
+		url, err := buildJoplinURL("resources", "")
+		if err != nil {
+			return err
+		}
+
+		return httpSend("POST", url, b, writer.FormDataContentType(), fmt.Sprintf("resource %s", fileName))
+	}
+
+	url, err := buildJoplinURL("notes", "")
 	if err != nil {
 		return err
 	}
-	url := "http://localhost:41184/notes/" + id + "?token=" + token
 
-	time.Sleep(200)
-
-	jsonData, err := get_data("PUT", fileName, DirZet, "")
+	jsonData, err := get_data("POST", fileName, DirZet, notebookId)
 	if err != nil {
 		return err
 	}
 
 	b := bytes.NewBuffer(jsonData)
-	return httpSend("PUT", url, *b, "application/json", fmt.Sprintf("note %s", fileName))
+	return httpSend("POST", url, *b, "application/json", fmt.Sprintf("note %s", fileName))
 }
 
-func PutNoteToJoplinWithNotebook(fileName string, DirZet string, notebookId string) error {
+func PostToJoplin(fileName string, DirZet string) error {
+	return postToJoplin(fileName, DirZet, "", 0)
+}
+
+func PostToJoplinWithNotebook(fileName string, DirZet string, notebookId string) error {
+	return postToJoplin(fileName, DirZet, notebookId, 0)
+}
+
+func putNoteToJoplin(fileName string, DirZet string, notebookId string) error {
+	time.Sleep(200)
 
 	id := EncryptFilename(fileName, 0)
 
-	token, err := config.GetJoplinToken()
+	url, err := buildJoplinURL("notes/"+id, "")
 	if err != nil {
 		return err
 	}
-	url := "http://localhost:41184/notes/" + id + "?token=" + token
-
-	time.Sleep(200)
 
 	jsonData, err := get_data("PUT", fileName, DirZet, notebookId)
 	if err != nil {
@@ -143,6 +95,14 @@ func PutNoteToJoplinWithNotebook(fileName string, DirZet string, notebookId stri
 
 	b := bytes.NewBuffer(jsonData)
 	return httpSend("PUT", url, *b, "application/json", fmt.Sprintf("note %s", fileName))
+}
+
+func PutNoteToJoplin(fileName string, DirZet string) error {
+	return putNoteToJoplin(fileName, DirZet, "")
+}
+
+func PutNoteToJoplinWithNotebook(fileName string, DirZet string, notebookId string) error {
+	return putNoteToJoplin(fileName, DirZet, notebookId)
 }
 
 func PostResourceFromBody(input string, DirZet string) error {
@@ -261,8 +221,8 @@ func get_data(method string, filename string, DirZet string, notebookId string) 
 	return jsonData, nil
 }
 
-func getBytes(fileName string, b *bytes.Buffer, writer *multipart.Writer, DirZet string) error {
-	id := EncryptFilename(fileName, 0)
+func getBytes(fileName string, b *bytes.Buffer, writer *multipart.Writer, DirZet string, index int) error {
+	id := EncryptFilename(fileName, index)
 
 	filePath := DirZet + "/" + fileName
 	file, err := os.Open(filePath)
@@ -303,80 +263,5 @@ func getBytes(fileName string, b *bytes.Buffer, writer *multipart.Writer, DirZet
 }
 
 func PostToJoplinWithIndex(fileName string, DirZet string, index int) error {
-	time.Sleep(200)
-	extension := files.GetFileType(fileName)
-
-	if utils.ItemInSlice([]string{"png", "jpg", "svg"}, extension) {
-
-		var b bytes.Buffer
-		writer := multipart.NewWriter(&b)
-
-		err := getBytesWithIndex(fileName, &b, writer, DirZet, index)
-		if err != nil {
-			return err
-		}
-
-		token, err := config.GetJoplinToken()
-		if err != nil {
-			return err
-		}
-		url := "http://localhost:41184/resources?token=" + token
-
-		return httpSend("POST", url, b, writer.FormDataContentType(), fmt.Sprintf("resource %s", fileName))
-	} else {
-		token, err := config.GetJoplinToken()
-		if err != nil {
-			return err
-		}
-		url := "http://localhost:41184/notes?token=" + token
-
-		jsonData, err := get_data("POST", fileName, DirZet, "")
-		if err != nil {
-			return err
-		}
-
-		b := bytes.NewBuffer(jsonData)
-		return httpSend("POST", url, *b, "application/json", fmt.Sprintf("note %s", fileName))
-	}
-}
-
-func getBytesWithIndex(fileName string, b *bytes.Buffer, writer *multipart.Writer, DirZet string, index int) error {
-	id := EncryptFilename(fileName, index)
-
-	filePath := DirZet + "/" + fileName
-	file, err := os.Open(filePath)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	part, err := writer.CreateFormFile("data", file.Name())
-	if err != nil {
-		return err
-	}
-	_, err = io.Copy(part, file)
-	if err != nil {
-		return err
-	}
-
-	data := map[string]string{
-		"id":    id,
-		"title": id,
-	}
-
-	jsonData, err := json.Marshal(data)
-	if err != nil {
-		return err
-	}
-	err = writer.WriteField("props", string(jsonData))
-	if err != nil {
-		return err
-	}
-
-	err = writer.Close()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return postToJoplin(fileName, DirZet, "", index)
 }
