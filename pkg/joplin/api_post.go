@@ -16,6 +16,13 @@ import (
 	"time"
 )
 
+func formatHTTPError(err error, context string, message string) error {
+	if context != "" {
+		return fmt.Errorf("%s for %s: %w", message, context, err)
+	}
+	return fmt.Errorf("%s: %w", message, err)
+}
+
 func PostToJoplin(fileName string, DirZet string) error {
 
 	time.Sleep(200)
@@ -171,10 +178,7 @@ func httpSend(method string, url string, b bytes.Buffer, contentType string, con
 
 	req, err = http.NewRequest(method, url, &b)
 	if err != nil {
-		if context != "" {
-			return fmt.Errorf("failed to create request for %s: %w", context, err)
-		}
-		return err
+		return formatHTTPError(err, context, "failed to create request")
 	}
 
 	req.Header.Set("Content-Type", contentType)
@@ -182,10 +186,7 @@ func httpSend(method string, url string, b bytes.Buffer, contentType string, con
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		if context != "" {
-			return fmt.Errorf("HTTP request failed for %s: %w", context, err)
-		}
-		return err
+		return wrapConnectionError(formatHTTPError(err, context, "HTTP request failed"), url)
 	}
 	defer resp.Body.Close()
 

@@ -22,7 +22,7 @@ func DeleteResourceFromJoplin(id string) error {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return err
+		return wrapConnectionError(err, url)
 	}
 	defer resp.Body.Close()
 

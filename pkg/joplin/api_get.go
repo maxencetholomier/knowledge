@@ -13,6 +13,18 @@ import (
 	"time"
 )
 
+func wrapConnectionError(err error, url string) error {
+	if err != nil && strings.Contains(err.Error(), "connection refused") {
+		platformName := "serveur distant"
+		if strings.Contains(url, "localhost:41184") {
+			platformName = "Joplin"
+		}
+
+		return fmt.Errorf("impossible de se connecter à %s. Veuillez vous assurer que le service est ouvert et accessible", platformName)
+	}
+	return err
+}
+
 func GetField(id string, field string) (string, error) {
 	value, _ := getField(id, field)
 	stringValue, ok := value.(string)
@@ -220,7 +232,7 @@ func getResource(id string, name string, index int, DirZet string) error {
 func httpGet(url string) ([]byte, error) {
 	resp, err := http.Get(url)
 	if err != nil {
-		return nil, fmt.Errorf("HTTP GET request failed for URL %s: %w", url, err)
+		return nil, wrapConnectionError(fmt.Errorf("HTTP GET request failed for URL %s: %w", url, err), url)
 	}
 	defer resp.Body.Close()
 
