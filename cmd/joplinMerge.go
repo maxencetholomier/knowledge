@@ -5,6 +5,7 @@ import (
 	"kl/pkg/config"
 	"kl/pkg/files"
 	"kl/pkg/joplin"
+	"kl/pkg/prompt"
 	"os"
 	"strings"
 	"time"
@@ -192,10 +193,11 @@ data loss may occur as the older version will be replaced by the newer one.`,
 			fmt.Printf("Notes pushed to Joplin will be moved to notebook '%s'\n", notebookName)
 		}
 
-		fmt.Print("\nProceed with synchronization? (y/N): ")
-		var response string
-		fmt.Scanln(&response)
-		if response != "y" && response != "Y" {
+		confirmed, err := prompt.Confirm("Proceed with synchronization?")
+		if err != nil {
+			return err
+		}
+		if !confirmed {
 			fmt.Println("Synchronization cancelled.")
 			return nil
 		}

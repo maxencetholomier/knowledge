@@ -1,11 +1,10 @@
 package cmd
 
 import (
-	"bufio"
 	"fmt"
 	"kl/pkg/files"
 	"kl/pkg/joplin"
-	"os"
+	"kl/pkg/prompt"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -97,15 +96,11 @@ var joplinCleanCmd = &cobra.Command{
 			}
 		}
 
-		fmt.Print("\nDo you want to delete these notes from Joplin? (yes/no): ")
-		reader := bufio.NewReader(os.Stdin)
-		response, err := reader.ReadString('\n')
+		confirmed, err := prompt.Confirm("Do you want to delete these notes from Joplin?")
 		if err != nil {
-			return fmt.Errorf("failed to read user input: %w", err)
+			return err
 		}
-
-		response = strings.ToLower(strings.TrimSpace(response))
-		if response != "yes" && response != "y" {
+		if !confirmed {
 			fmt.Println("Operation cancelled.")
 			return nil
 		}

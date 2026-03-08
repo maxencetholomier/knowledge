@@ -5,6 +5,7 @@ import (
 	"kl/pkg/config"
 	"kl/pkg/files"
 	"kl/pkg/joplin"
+	"kl/pkg/prompt"
 	"kl/pkg/utils"
 	"os"
 	"strings"
@@ -104,10 +105,11 @@ var joplinImportCmd = &cobra.Command{
 			}
 		}
 
-		fmt.Print("\nProceed with import? (y/N): ")
-		var response string
-		fmt.Scanln(&response)
-		if response != "y" && response != "Y" {
+		confirmed, err := prompt.Confirm("Proceed with import?")
+		if err != nil {
+			return err
+		}
+		if !confirmed {
 			fmt.Println("Import cancelled.")
 			return nil
 		}

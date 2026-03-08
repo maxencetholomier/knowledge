@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"kl/pkg/files"
+	"kl/pkg/prompt"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -35,7 +36,10 @@ var cleanCmd = &cobra.Command{
 
 		displayFilesToClean(emptyNotes, unlinkedImages)
 
-		confirmed := getUserConfirmation()
+		confirmed, err := prompt.Confirm("Do you want to delete these files?")
+		if err != nil {
+			return err
+		}
 		if !confirmed {
 			fmt.Println("Cleanup cancelled.")
 			return nil
@@ -57,15 +61,6 @@ func displayFilesToClean(emptyNotes, unlinkedImages []string) {
 	for _, image := range unlinkedImages {
 		fmt.Printf("  Unlinked image: %s\n", image)
 	}
-}
-
-func getUserConfirmation() bool {
-	fmt.Print("\nDo you want to delete these files? (y/N): ")
-	var response string
-	fmt.Scanln(&response)
-
-	response = strings.ToLower(response)
-	return response == "y" || response == "yes"
 }
 
 func deleteFiles(emptyNotes, unlinkedImages []string) int {
