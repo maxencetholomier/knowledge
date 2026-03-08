@@ -95,6 +95,13 @@ var joplinExportCmd = &cobra.Command{
 			return nil
 		}
 
+		type exportError struct {
+			timestamp string
+			err       error
+		}
+		var noteErrors []exportError
+		var resourceErrors []exportError
+
 		fmt.Printf("\nExporting %d notes...\n", len(timestamps))
 
 		processed := make(map[string]bool)
@@ -105,34 +112,44 @@ var joplinExportCmd = &cobra.Command{
 			}
 			processed[timestamp] = true
 
-			// Read the note content first to extract resources before conversion
 			zetBody, err := os.ReadFile(DirZet + "/" + timestamp + ".md")
 			if err != nil {
-				return fmt.Errorf("failed to read note file %s: %w", timestamp, err)
+				noteErrors = append(noteErrors, exportError{timestamp, fmt.Errorf("failed to read note file: %w", err)})
+				continue
 			}
 
 			body := string(zetBody)
 
-			// Export resources first (before the note content is converted)
 			err = joplin.PostResourceFromBody(body, DirZet)
 			if err != nil {
-				fmt.Printf("Warning: failed to export resources for note %s:\n%v\n", timestamp, err)
+				resourceErrors = append(resourceErrors, exportError{timestamp, err})
 			}
 
-			// Then export the note (which will convert timestamp links to Joplin IDs)
 			if notebookId != "" {
 				err = joplin.PostToJoplinWithNotebook(timestamp+".md", DirZet, notebookId)
 			} else {
 				err = joplin.PostToJoplin(timestamp+".md", DirZet)
 			}
 			if err != nil {
-				fmt.Printf("ERROR: failed to export note %s:\n%v\n", timestamp, err)
-				return fmt.Errorf("export failed")
+				noteErrors = append(noteErrors, exportError{timestamp, err})
+				continue
 			}
 
 		}
 
-		fmt.Printf("\nSuccessfully exported %d notes to Joplin.\n", len(timestamps))
+		fmt.Printf("\nSuccessfully exported %d notes to Joplin.\n", len(timestamps)-len(noteErrors))
+		if len(noteErrors) > 0 {
+			fmt.Printf("Warning: %d note(s) could not be exported:\n", len(noteErrors))
+			for _, e := range noteErrors {
+				fmt.Printf("  - %s: %v\n", e.timestamp, e.err)
+			}
+		}
+		if len(resourceErrors) > 0 {
+			fmt.Printf("Warning: %d note(s) had resource export failures:\n", len(resourceErrors))
+			for _, e := range resourceErrors {
+				fmt.Printf("  - %s: %v\n", e.timestamp, e.err)
+			}
+		}
 		return nil
 	},
 }
