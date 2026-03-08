@@ -148,27 +148,6 @@ func CheckInitError() error {
 	return initError
 }
 
-func init() {
-	if err := initHomeDir(); err != nil {
-		initError = err
-		return
-	}
-
-	config, err := loadConfigFile()
-	if err != nil {
-		initError = err
-		return
-	}
-
-	setConfigVars(config)
-	initEditor()
-
-	if err := initJoplin(config); err != nil {
-		initError = err
-		return
-	}
-}
-
 func initHomeDir() error {
 	dir, err := os.UserHomeDir()
 	if err != nil {
@@ -241,4 +220,25 @@ func initJoplin(config *Config) error {
 		return fmt.Errorf("api-token not found in joplin config file")
 	}
 	return nil
+}
+
+func init() {
+	if err := initHomeDir(); err != nil {
+		initError = err
+		return
+	}
+
+	config, err := loadConfigFile()
+	if err != nil {
+		initError = err
+		return
+	}
+
+	setConfigVars(config)
+	initEditor()
+
+	if err := initJoplin(config); err != nil {
+		initError = err
+		return
+	}
 }
