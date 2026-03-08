@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"strings"
 )
 
 type Config struct {
@@ -199,11 +200,30 @@ func setConfigVars(config *Config) {
 	joplinNotebook = config.JoplinNotebook
 }
 
+func joplinConfigCandidates() []string {
+	return []string{
+		homeDir + "/.config/joplin-desktop/settings.json",
+		homeDir + "/snap/joplin-desktop/current/.config/joplin-desktop/settings.json",
+		homeDir + "/.var/app/net.cozic.joplin_desktop/config/joplin-desktop/settings.json",
+	}
+}
+
 func initJoplin(config *Config) error {
 	if config.JoplinConfigFile != "" {
 		FileJoplinConfig = config.JoplinConfigFile
 	} else {
-		FileJoplinConfig = homeDir + "/.config/joplin-desktop/settings.json"
+		candidates := joplinConfigCandidates()
+		found := false
+		for _, candidate := range candidates {
+			if _, err := os.Stat(candidate); err == nil {
+				FileJoplinConfig = candidate
+				found = true
+				break
+			}
+		}
+		if !found {
+			return fmt.Errorf("Joplin config file not found (tried: %s) — Joplin commands will not be available", strings.Join(candidates, ", "))
+		}
 	}
 
 	configFile, err := os.ReadFile(FileJoplinConfig)
