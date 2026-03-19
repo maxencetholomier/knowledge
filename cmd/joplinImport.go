@@ -90,7 +90,11 @@ func writeNotesToFiles(notesToImport []noteToImport) {
 
 		err = joplin.GetResourcesFromBody(cleanBody, timestamp, DirZet)
 		if err != nil {
-			fmt.Printf("Error getting resources for %s: %v\n", timestamp, err)
+			if strings.Contains(err.Error(), "404") {
+				fmt.Printf("Warning: Some resources not found for %s\n", timestamp)
+			} else {
+				fmt.Printf("Error getting resources for %s: %v\n", timestamp, err)
+			}
 		}
 
 		new_body, err := joplin.ReplacingJoplinLink(cleanBody, new_id)
