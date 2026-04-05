@@ -5,10 +5,10 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
+	"io"
 	"math"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"time"
 
@@ -54,7 +54,6 @@ func ConvertNote(notePath string, linkMap map[string]string) (*genanki.Note, []M
 	}
 
 	back = detectAndConvertTables(back)
-	back = processCodeBlocks(back)
 	backHTML := markdownToHTML(back)
 
 	noteFilename := strings.TrimSuffix(filepath.Base(notePath), ".md")
@@ -207,33 +206,12 @@ func generateSeparatorRow(headerRow string) string {
 	return "| " + strings.Join(separators, " | ") + " |"
 }
 
-func processCodeBlocks(markdown string) string {
-	codeBlockRegex := regexp.MustCompile("```([a-zA-Z0-9]*)\n([\\s\\S]*?)```")
-
-	result := codeBlockRegex.ReplaceAllStringFunc(markdown, func(match string) string {
-		submatches := codeBlockRegex.FindStringSubmatch(match)
-		if len(submatches) < 3 {
-			return match
-		}
-
-		language := strings.TrimSpace(submatches[1])
-		code := submatches[2]
-
-		if language == "" {
-			language = "text"
-		}
-
-		highlightedHTML := HighlightCodeBlock(code, language)
-		return highlightedHTML
-	})
-
-	return result
-}
-
 func markdownToHTML(markdown string) string {
-	renderer := blackfriday.NewHTMLRenderer(blackfriday.HTMLRendererParameters{
-		Flags: blackfriday.CommonHTMLFlags,
-	})
+	renderer := &chromaRenderer{
+		HTMLRenderer: blackfriday.NewHTMLRenderer(blackfriday.HTMLRendererParameters{
+			Flags: blackfriday.CommonHTMLFlags,
+		}),
+	}
 
 	md := blackfriday.New(blackfriday.WithRenderer(renderer), blackfriday.WithExtensions(blackfriday.CommonExtensions|blackfriday.HardLineBreak))
 
@@ -244,4 +222,21 @@ func markdownToHTML(markdown string) string {
 	})
 
 	return buf.String()
+}
+
+type chromaRenderer struct {
+	*blackfriday.HTMLRenderer
+}
+
+func (r *chromaRenderer) RenderNode(w io.Writer, node *blackfriday.Node, entering bool) blackfriday.WalkStatus {
+	if node.Type == blackfriday.CodeBlock {
+		language := strings.TrimSpace(string(node.Info))
+		if language == "" {
+			language = "text"
+		}
+		highlighted := HighlightCodeBlock(string(node.Literal), language)
+		w.Write([]byte(highlighted))
+		return blackfriday.GoToNext
+	}
+	return r.HTMLRenderer.RenderNode(w, node, entering)
 }
