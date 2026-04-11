@@ -54,7 +54,8 @@ func ConvertNote(notePath string, linkMap map[string]string) (*genanki.Note, []M
 	}
 
 	back = detectAndConvertTables(back)
-	backHTML := markdownToHTML(back)
+	backHTML, mermaidMedia := markdownToHTML(back)
+	mediaFiles = append(mediaFiles, mermaidMedia...)
 
 	noteFilename := strings.TrimSuffix(filepath.Base(notePath), ".md")
 
@@ -66,7 +67,7 @@ func ConvertNote(notePath string, linkMap map[string]string) (*genanki.Note, []M
 	note := &genanki.Note{
 		ID:        generateDeterministicID(noteFilename),
 		ModelID:   BasicModelID,
-		Fields:    []string{front, string(backHTML)},
+		Fields:    []string{front, backHTML},
 		Tags:      []string{noteFilename},
 		Modified:  time.Now(),
 		SortField: front,
@@ -206,7 +207,7 @@ func generateSeparatorRow(headerRow string) string {
 	return "| " + strings.Join(separators, " | ") + " |"
 }
 
-func markdownToHTML(markdown string) string {
+func markdownToHTML(markdown string) (string, []MediaFile) {
 	renderer := &chromaRenderer{
 		HTMLRenderer: blackfriday.NewHTMLRenderer(blackfriday.HTMLRendererParameters{
 			Flags: blackfriday.CommonHTMLFlags,
@@ -221,16 +222,30 @@ func markdownToHTML(markdown string) string {
 		return renderer.RenderNode(&buf, node, entering)
 	})
 
-	return buf.String()
+	return buf.String(), renderer.mediaFiles
 }
 
 type chromaRenderer struct {
 	*blackfriday.HTMLRenderer
+	mediaFiles []MediaFile
 }
 
 func (r *chromaRenderer) RenderNode(w io.Writer, node *blackfriday.Node, entering bool) blackfriday.WalkStatus {
 	if node.Type == blackfriday.CodeBlock {
 		language := strings.TrimSpace(string(node.Info))
+		if language == "mermaid" {
+			data, filename, err := ConvertMermaidToPNG(string(node.Literal))
+			if err != nil {
+				fmt.Fprintf(w, `<pre><code>%s</code></pre>`, node.Literal)
+			} else {
+				r.mediaFiles = append(r.mediaFiles, MediaFile{
+					Filename: filename,
+					Data:     data,
+				})
+				fmt.Fprintf(w, `<img src="%s" alt="Mermaid diagram">`, filename)
+			}
+			return blackfriday.GoToNext
+		}
 		if language == "" {
 			language = "text"
 		}
