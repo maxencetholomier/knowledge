@@ -137,19 +137,36 @@ func detectAndConvertTables(content string) string {
 				}
 			}
 
-			hasSeparator := false
+			separatorIdx := -1
 			for j := tableStart; j <= tableEnd; j++ {
 				if isSeparatorRow(lines[j]) {
-					hasSeparator = true
+					separatorIdx = j
 					break
 				}
 			}
 
-			if !hasSeparator && tableEnd > tableStart {
-				result = append(result, lines[tableStart])
-				result = append(result, generateSeparatorRow(lines[tableStart]))
-				for j := tableStart + 1; j <= tableEnd; j++ {
-					result = append(result, lines[j])
+			if tableEnd > tableStart {
+				if separatorIdx == -1 {
+					// No separator: insert one after the header
+					result = append(result, lines[tableStart])
+					result = append(result, generateSeparatorRow(lines[tableStart]))
+					for j := tableStart + 1; j <= tableEnd; j++ {
+						result = append(result, lines[j])
+					}
+				} else if separatorIdx != tableStart+1 {
+					// Separator exists but is misplaced: reorder to header + separator + content rows
+					result = append(result, lines[tableStart])
+					result = append(result, lines[separatorIdx])
+					for j := tableStart + 1; j <= tableEnd; j++ {
+						if j != separatorIdx {
+							result = append(result, lines[j])
+						}
+					}
+				} else {
+					// Separator already in correct position
+					for j := tableStart; j <= tableEnd; j++ {
+						result = append(result, lines[j])
+					}
 				}
 				i = tableEnd + 1
 				continue
