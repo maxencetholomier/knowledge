@@ -131,53 +131,54 @@ func getMergeActions(ids []string) ([]mergeAction, error) {
 		}
 
 		fileName := joplin.DecryptFilename(id)
+		if fileName == "" {
+			continue
+		}
 
-		if fileName != "" {
-			zet_last_update, localErr := files.GetLastUpdate(fileName, DirZet)
-			joplin_last_update, joplinErr := joplin.GetLastUpdate(id)
+		zet_last_update, localErr := files.GetLastUpdate(fileName, DirZet)
+		joplin_last_update, joplinErr := joplin.GetLastUpdate(id)
 
-			if localErr != nil && joplinErr != nil {
-				continue
-			}
+		if localErr != nil && joplinErr != nil {
+			continue
+		}
 
-			localContent, readErr := os.ReadFile(DirZet + "/" + fileName)
-			normalizedJoplinContent := joplin.ReplaceIdsToLink(body)
-			normalizedJoplinContent = strings.TrimSpace(normalizedJoplinContent)
+		localContent, readErr := os.ReadFile(DirZet + "/" + fileName)
+		normalizedJoplinContent := joplin.ReplaceIdsToLink(body)
+		normalizedJoplinContent = strings.TrimSpace(normalizedJoplinContent)
 
-			action := mergeAction{
-				fileName:             fileName,
-				title:                title,
-				localUpdate:          zet_last_update,
-				joplinUpdate:         joplin_last_update,
-				joplinBody:           body,
-				normalizedJoplinBody: normalizedJoplinContent,
-			}
+		action := mergeAction{
+			fileName:             fileName,
+			title:                title,
+			localUpdate:          zet_last_update,
+			joplinUpdate:         joplin_last_update,
+			joplinBody:           body,
+			normalizedJoplinBody: normalizedJoplinContent,
+		}
 
-			if readErr == nil {
-				action.localBody = strings.TrimSpace(string(localContent))
-			}
+		if readErr == nil {
+			action.localBody = strings.TrimSpace(string(localContent))
+		}
 
-			if localErr != nil {
+		if localErr != nil {
+			action.action = "pull_from_joplin"
+		} else if joplinErr != nil {
+			action.action = "push_to_joplin"
+		} else if readErr != nil {
+			action.action = "pull_from_joplin"
+		} else {
+			if action.localBody == normalizedJoplinContent {
+				action.action = "no_change"
+			} else if zet_last_update.Before(joplin_last_update) {
 				action.action = "pull_from_joplin"
-			} else if joplinErr != nil {
+			} else if joplin_last_update.Before(zet_last_update) {
 				action.action = "push_to_joplin"
-			} else if readErr != nil {
-				action.action = "pull_from_joplin"
 			} else {
-				if action.localBody == normalizedJoplinContent {
-					action.action = "no_change"
-				} else if zet_last_update.Before(joplin_last_update) {
-					action.action = "pull_from_joplin"
-				} else if joplin_last_update.Before(zet_last_update) {
-					action.action = "push_to_joplin"
-				} else {
-					action.action = "pull_from_joplin"
-				}
+				action.action = "pull_from_joplin"
 			}
+		}
 
-			if action.action != "no_change" {
-				mergeActions = append(mergeActions, action)
-			}
+		if action.action != "no_change" {
+			mergeActions = append(mergeActions, action)
 		}
 	}
 
