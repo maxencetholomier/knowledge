@@ -2,8 +2,27 @@ package joplin
 
 import (
 	"fmt"
+	"kl/pkg/config"
 	"regexp"
 )
+
+func GetNotebookInfo(notebookFlag string) (string, string, error) {
+	notebookName := notebookFlag
+	if notebookName == "" {
+		notebookName = config.GetJoplinNotebook()
+	}
+
+	var notebookId string
+	if notebookName != "" {
+		var err error
+		notebookId, err = GetNotebookIdByName(notebookName)
+		if err != nil {
+			return "", "", err
+		}
+	}
+
+	return notebookName, notebookId, nil
+}
 
 func ReplaceTimestampToIds(line string) (string, error) {
 	re := regexp.MustCompile(`[0-9]{14}(?:_[0-9]+)?\.(md|png|jpeg|jpg|svg)?`)
