@@ -14,17 +14,17 @@ var joplinListCmd = &cobra.Command{
 	Short:   "List all notes in Joplin with timestamps and titles",
 	Long:    `Display all notes in Joplin showing their timestamps and titles.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		ids, err := joplin.GetIds("notes")
+		notes, err := joplin.GetNotes([]string{"title"})
 		if err != nil {
 			return err
 		}
 
-		for _, id := range ids {
-			if !strings.HasSuffix(id, "aaa") {
+		for _, note := range notes {
+			if !strings.HasSuffix(note.ID, "aaa") {
 				continue
 			}
 
-			filename := joplin.DecryptFilename(id)
+			filename := joplin.DecryptFilename(note.ID)
 			if filename == "" {
 				continue
 			}
@@ -34,23 +34,15 @@ var joplinListCmd = &cobra.Command{
 				continue
 			}
 
-			titleLine, err := joplin.GetField(id, "title")
-			if err != nil {
-				fmt.Println(timestamp)
+			title := strings.Split(note.Title, "\n")[0]
+			if strings.HasPrefix(title, "#") {
+				title = strings.TrimSpace(strings.TrimPrefix(title, "#"))
+			}
+
+			if title != "" {
+				fmt.Printf("%s - %s\n", timestamp, title)
 			} else {
-				firstLine := strings.Split(titleLine, "\n")[0]
-				
-				title := firstLine
-				if strings.HasPrefix(title, "#") {
-					title = strings.TrimPrefix(title, "#")
-					title = strings.TrimSpace(title)
-				}
-				
-				if title != "" {
-					fmt.Printf("%s - %s\n", timestamp, title)
-				} else {
-					fmt.Println(timestamp)
-				}
+				fmt.Println(timestamp)
 			}
 		}
 		return nil

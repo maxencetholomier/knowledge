@@ -128,18 +128,18 @@ func getLocalList() (map[string]string, error) {
 }
 
 func getJoplinList() (map[string]string, error) {
-	ids, err := joplin.GetIds("notes")
+	joplinNotes, err := joplin.GetNotes([]string{"title"})
 	if err != nil {
 		return nil, err
 	}
 
 	notes := make(map[string]string)
-	for _, id := range ids {
-		if !strings.HasSuffix(id, "aaa") {
+	for _, note := range joplinNotes {
+		if !strings.HasSuffix(note.ID, "aaa") {
 			continue
 		}
 
-		filename := joplin.DecryptFilename(id)
+		filename := joplin.DecryptFilename(note.ID)
 		if filename == "" {
 			continue
 		}
@@ -149,15 +149,9 @@ func getJoplinList() (map[string]string, error) {
 			continue
 		}
 
-		titleLine, err := joplin.GetField(id, "title")
-		title := ""
-		if err == nil {
-			firstLine := strings.Split(titleLine, "\n")[0]
-			title = firstLine
-			if strings.HasPrefix(title, "#") {
-				title = strings.TrimPrefix(title, "#")
-				title = strings.TrimSpace(title)
-			}
+		title := strings.Split(note.Title, "\n")[0]
+		if strings.HasPrefix(title, "#") {
+			title = strings.TrimSpace(strings.TrimPrefix(title, "#"))
 		}
 		notes[timestamp] = title
 	}

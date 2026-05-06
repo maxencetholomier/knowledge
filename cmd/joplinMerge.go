@@ -48,7 +48,7 @@ data loss may occur as the older version will be replaced by the newer one.`,
 			return err
 		}
 
-		ids, err := joplin.GetIds("notes")
+		joplinNotes, err := joplin.GetNotes([]string{"title", "body", "updated_time"})
 		if err != nil {
 			return err
 		}
@@ -60,7 +60,7 @@ data loss may occur as the older version will be replaced by the newer one.`,
 			forceAction = "pull_from_joplin"
 		}
 
-		mergeActions, err := getMergeActions(ids, forceAction)
+		mergeActions, err := getMergeActions(joplinNotes, forceAction)
 		if err != nil {
 			return err
 		}
@@ -130,27 +130,24 @@ func applyMergeActions(mergeActions []mergeAction, notebookId string) {
 	fmt.Printf("\nSuccessfully synchronized %d notes.\n", len(mergeActions))
 }
 
-func getMergeActions(ids []string, forceAction string) ([]mergeAction, error) {
+func getMergeActions(joplinNotes []joplin.Note, forceAction string) ([]mergeAction, error) {
 	var mergeActions []mergeAction
 
-	for _, id := range ids {
-		body, err := joplin.GetField(id, "body")
-		if err != nil {
-			continue
-		}
-
-		title, err := joplin.GetField(id, "title")
-		if err != nil {
-			title = ""
-		}
-
-		fileName := joplin.DecryptFilename(id)
+	for _, note := range joplinNotes {
+		fileName := joplin.DecryptFilename(note.ID)
 		if fileName == "" {
 			continue
 		}
 
 		zet_last_update, localErr := files.GetLastUpdate(fileName, DirZet)
-		joplin_last_update, joplinErr := joplin.GetLastUpdate(id)
+		joplin_last_update := note.UpdatedTime
+		joplinErr := error(nil)
+		if joplin_last_update.IsZero() {
+			joplinErr = fmt.Errorf("no updated_time for note %s", note.ID)
+		}
+
+		body := note.Body
+		title := note.Title
 
 		if localErr != nil && joplinErr != nil {
 			continue

@@ -23,9 +23,9 @@ var joplinCleanCmd = &cobra.Command{
 
 		localTimestamps := files.GetTimestamps(localFiles)
 
-		joplinIds, err := joplin.GetIds("notes")
+		joplinNotes, err := joplin.GetNotes([]string{"title"})
 		if err != nil {
-			return fmt.Errorf("failed to get Joplin note IDs: %w", err)
+			return fmt.Errorf("failed to get Joplin notes: %w", err)
 		}
 
 		type noteToDelete struct {
@@ -34,12 +34,10 @@ var joplinCleanCmd = &cobra.Command{
 		}
 
 		var notesToDelete []noteToDelete
-		
-		for _, joplinId := range joplinIds {
-			title, err := joplin.GetField(joplinId, "title")
-			if err != nil {
-				title = "Unknown"
-			}
+
+		for _, joplinNote := range joplinNotes {
+			joplinId := joplinNote.ID
+			title := joplinNote.Title
 
 			filename := joplin.DecryptFilename(joplinId)
 			if filename != "" {

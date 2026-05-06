@@ -32,7 +32,12 @@ var joplinImportCmd = &cobra.Command{
 			return err
 		}
 
-		notesToImport, err := collectNotesToImport(notebookId)
+		joplinNotes, err := joplin.GetNotes([]string{"title", "body", "parent_id"})
+		if err != nil {
+			return err
+		}
+
+		notesToImport, err := collectNotesToImport(joplinNotes, notebookId)
 		if err != nil {
 			return err
 		}
@@ -143,36 +148,15 @@ func confirmImport(notesToImport []noteToImport, notebookName string) (bool, err
 	return true, nil
 }
 
-func collectNotesToImport(notebookId string) ([]noteToImport, error) {
-	ids, err := joplin.GetIds("notes")
-	if err != nil {
-		return nil, err
-	}
-
+func collectNotesToImport(notes []joplin.Note, notebookId string) ([]noteToImport, error) {
 	var notesToImport []noteToImport
 
-	for _, id := range ids {
-		if notebookId != "" {
-			parentId, err := joplin.GetNoteParentId(id)
-			if err != nil {
-				continue
-			}
-			if parentId != notebookId {
-				continue
-			}
-		}
-
-		title, err := joplin.GetField(id, "title")
-		if err != nil {
+	for _, note := range notes {
+		if notebookId != "" && note.ParentID != notebookId {
 			continue
 		}
 
-		body, err := joplin.GetField(id, "body")
-		if err != nil {
-			continue
-		}
-
-		fileName := joplin.DecryptFilename(id)
+		fileName := joplin.DecryptFilename(note.ID)
 		if fileName == "" {
 			timestamp := utils.CreateTimestamp()
 			fileName = timestamp + ".md"
@@ -180,9 +164,9 @@ func collectNotesToImport(notebookId string) ([]noteToImport, error) {
 
 		if _, err := os.Stat(DirZet + "/" + fileName); os.IsNotExist(err) {
 			notesToImport = append(notesToImport, noteToImport{
-				id:       id,
-				title:    title,
-				body:     body,
+				id:       note.ID,
+				title:    note.Title,
+				body:     note.Body,
 				fileName: fileName,
 			})
 		}

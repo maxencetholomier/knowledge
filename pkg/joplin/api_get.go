@@ -12,6 +12,76 @@ import (
 	"time"
 )
 
+type Note struct {
+	ID          string
+	Title       string
+	Body        string
+	ParentID    string
+	UpdatedTime time.Time
+}
+
+func GetNotes(fields []string) ([]Note, error) {
+	fieldsParam := "id," + strings.Join(fields, ",")
+	var notes []Note
+	page := 0
+
+	token, err := config.GetJoplinToken()
+	if err != nil {
+		return nil, err
+	}
+
+	baseURL := "http://localhost:41184/notes?token=" + token + "&fields=" + fieldsParam + "&limit=50"
+
+	for {
+		body, err := httpGet(baseURL + "&page=" + strconv.Itoa(page))
+		if err != nil {
+			return nil, err
+		}
+
+		var data map[string]interface{}
+		if err := json.Unmarshal(body, &data); err != nil {
+			return nil, err
+		}
+
+		items, ok := data["items"].([]interface{})
+		if !ok {
+			return nil, fmt.Errorf("items key not found or is not a list")
+		}
+
+		for _, item := range items {
+			itemMap, ok := item.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			note := Note{}
+			if id, ok := itemMap["id"].(string); ok {
+				note.ID = id
+			}
+			if title, ok := itemMap["title"].(string); ok {
+				note.Title = title
+			}
+			if b, ok := itemMap["body"].(string); ok {
+				note.Body = b
+			}
+			if parentID, ok := itemMap["parent_id"].(string); ok {
+				note.ParentID = parentID
+			}
+			if updatedTime, ok := itemMap["updated_time"].(float64); ok {
+				note.UpdatedTime = time.UnixMilli(int64(updatedTime))
+			}
+			notes = append(notes, note)
+		}
+
+		hasMore, err := jsonReadValue(data, "bool")
+		if err != nil || hasMore != "true" {
+			break
+		}
+		page++
+	}
+
+	return notes, nil
+}
+
 func GetField(id string, field string) (string, error) {
 	value, _ := getField(id, field)
 	stringValue, ok := value.(string)
