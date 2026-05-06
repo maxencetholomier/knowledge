@@ -7,8 +7,7 @@ import (
 	"strings"
 )
 
-func GetNotebookInfo(notebookFlag string) (string, string, error) {
-	notebookName := notebookFlag
+func GetNotebookInfo(notebookName string) (string, string, error) {
 	if notebookName == "" {
 		notebookName = config.GetJoplinNotebook()
 	}
