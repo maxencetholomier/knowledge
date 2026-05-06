@@ -14,6 +14,8 @@ import (
 
 var joplinMergeNotebook string
 var joplinMergeShowDiff bool
+var joplinMergeForceLocal bool
+var joplinMergeForceJoplin bool
 
 type mergeAction struct {
 	fileName             string
@@ -37,6 +39,10 @@ If you have modified the same note both locally and in the cloud, there is no co
 data loss may occur as the older version will be replaced by the newer one.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 
+		if joplinMergeForceLocal && joplinMergeForceJoplin {
+			return fmt.Errorf("--force-local and --force-joplin are mutually exclusive")
+		}
+
 		notebookName, notebookId, err := joplin.GetNotebookInfo(joplinMergeNotebook)
 		if err != nil {
 			return err
@@ -47,7 +53,14 @@ data loss may occur as the older version will be replaced by the newer one.`,
 			return err
 		}
 
-		mergeActions, err := getMergeActions(ids)
+		forceAction := ""
+		if joplinMergeForceLocal {
+			forceAction = "push_to_joplin"
+		} else if joplinMergeForceJoplin {
+			forceAction = "pull_from_joplin"
+		}
+
+		mergeActions, err := getMergeActions(ids, forceAction)
 		if err != nil {
 			return err
 		}
@@ -117,7 +130,7 @@ func applyMergeActions(mergeActions []mergeAction, notebookId string) {
 	fmt.Printf("\nSuccessfully synchronized %d notes.\n", len(mergeActions))
 }
 
-func getMergeActions(ids []string) ([]mergeAction, error) {
+func getMergeActions(ids []string, forceAction string) ([]mergeAction, error) {
 	var mergeActions []mergeAction
 
 	for _, id := range ids {
@@ -167,7 +180,12 @@ func getMergeActions(ids []string) ([]mergeAction, error) {
 			action.localBody = strings.TrimSpace(string(localContent))
 		}
 
-		if localErr != nil {
+		if forceAction != "" {
+			if forceAction == "push_to_joplin" && (localErr != nil || readErr != nil) {
+				continue
+			}
+			action.action = forceAction
+		} else if localErr != nil {
 			action.action = "pull_from_joplin"
 		} else if joplinErr != nil {
 			action.action = "push_to_joplin"
@@ -277,5 +295,7 @@ func showDiff(localContent, joplinContent string, maxLines int) {
 func init() {
 	joplinMergeCmd.Flags().StringVarP(&joplinMergeNotebook, "notebook", "n", "", "specify the notebook to move local notes to when pushing to Joplin")
 	joplinMergeCmd.Flags().BoolVar(&joplinMergeShowDiff, "diff", false, "show diff of changes for each file")
+	joplinMergeCmd.Flags().BoolVar(&joplinMergeForceLocal, "force-local", false, "push all notes from local to Joplin, ignoring timestamps")
+	joplinMergeCmd.Flags().BoolVar(&joplinMergeForceJoplin, "force-joplin", false, "pull all notes from Joplin to local, ignoring timestamps")
 	joplinCmd.AddCommand(joplinMergeCmd)
 }
