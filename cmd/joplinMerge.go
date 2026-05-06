@@ -76,10 +76,11 @@ func applyMergeActions(mergeActions []mergeAction, notebookId string) {
 	for _, action := range mergeActions {
 		if action.action == "pull_from_joplin" {
 			var cleanBody string
+			strippedBody := joplin.StripLeadingHeading(action.joplinBody)
 			if action.title != "" {
-				cleanBody = "# " + action.title + "\n\n" + action.joplinBody
+				cleanBody = "# " + action.title + "\n\n" + strippedBody
 			} else {
-				cleanBody = "# \n\n" + action.joplinBody
+				cleanBody = "# \n\n" + strippedBody
 			}
 			file, err := files.Create(DirZet+"/"+action.fileName, joplin.ReplaceIdsToLink(cleanBody))
 			if err != nil {
@@ -143,8 +144,15 @@ func getMergeActions(ids []string) ([]mergeAction, error) {
 		}
 
 		localContent, readErr := os.ReadFile(DirZet + "/" + fileName)
-		normalizedJoplinContent := joplin.ReplaceIdsToLink(body)
-		normalizedJoplinContent = strings.TrimSpace(normalizedJoplinContent)
+
+		cleanedBody := joplin.StripLeadingHeading(joplin.ReplaceIdsToLink(body))
+		var reconstructed string
+		if title != "" {
+			reconstructed = "# " + title + "\n\n" + cleanedBody
+		} else {
+			reconstructed = "# \n\n" + cleanedBody
+		}
+		normalizedJoplinContent := strings.TrimSpace(reconstructed)
 
 		action := mergeAction{
 			fileName:             fileName,

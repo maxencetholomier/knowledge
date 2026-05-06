@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"kl/pkg/config"
 	"regexp"
+	"strings"
 )
 
 func GetNotebookInfo(notebookFlag string) (string, string, error) {
@@ -60,6 +61,17 @@ func ReplaceIdsToLink(line string) string {
 	})
 
 	return result
+}
+
+func StripLeadingHeading(body string) string {
+	if !strings.HasPrefix(body, "# ") {
+		return body
+	}
+	newline := strings.Index(body, "\n")
+	if newline == -1 {
+		return ""
+	}
+	return strings.TrimLeft(body[newline+1:], "\n")
 }
 
 func ReplacingJoplinLink(input string, timestamp string) (string, error) {

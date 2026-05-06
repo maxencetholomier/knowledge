@@ -174,8 +174,20 @@ func get_data(method string, filename string, DirZet string, notebookId string) 
 			return nil, err
 		}
 
+		title := utils.GetFirstLine(content)
+		title = strings.TrimPrefix(title, "#")
+		title = strings.Trim(title, " ")
+
+		lines := strings.Split(content, "\n")
+		bodyWithoutTitle := ""
+		if len(lines) > 1 {
+			bodyWithoutTitle = strings.Join(lines[1:], "\n")
+			bodyWithoutTitle = strings.TrimLeft(bodyWithoutTitle, "\n")
+		}
+
 		data = map[string]string{
-			"body": content,
+			"title": title,
+			"body":  bodyWithoutTitle,
 		}
 
 		if notebookId != "" {

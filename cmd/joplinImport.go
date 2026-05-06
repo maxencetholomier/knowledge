@@ -64,10 +64,11 @@ func writeNotesToFiles(notesToImport []noteToImport) {
 		}
 
 		var cleanBody string
+		strippedBody := joplin.StripLeadingHeading(note.body)
 		if note.title != "" {
-			cleanBody = "# " + note.title + "\n\n" + note.body
+			cleanBody = "# " + note.title + "\n\n" + strippedBody
 		} else {
-			cleanBody = "# \n\n" + note.body
+			cleanBody = "# \n\n" + strippedBody
 		}
 
 		err = joplin.GetResourcesFromBody(cleanBody, timestamp, DirZet)
