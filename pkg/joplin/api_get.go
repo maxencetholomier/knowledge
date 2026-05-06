@@ -141,6 +141,59 @@ func GetIds(idType string) ([]string, error) {
 	return ids, nil
 }
 
+type TrashedNote struct {
+	ID    string
+	Title string
+}
+
+func GetTrashedNotes() ([]TrashedNote, error) {
+	var notes []TrashedNote
+	limit := "50"
+	page := 0
+
+	token, err := config.GetJoplinToken()
+	if err != nil {
+		return nil, err
+	}
+	baseURL := "http://localhost:41184/notes?token=" + token + "&include_deleted=1&fields=id,title,deleted_time"
+
+	for {
+		url := baseURL + "&limit=" + limit + "&page=" + strconv.Itoa(page)
+		body, err := httpGet(url)
+		if err != nil {
+			return nil, err
+		}
+
+		var data map[string]interface{}
+		if err := json.Unmarshal(body, &data); err != nil {
+			return nil, err
+		}
+
+		if items, ok := data["items"].([]interface{}); ok {
+			for _, item := range items {
+				itemMap, ok := item.(map[string]interface{})
+				if !ok {
+					continue
+				}
+				id, _ := itemMap["id"].(string)
+				title, _ := itemMap["title"].(string)
+				deletedTime, _ := itemMap["deleted_time"].(float64)
+				if id != "" && deletedTime > 0 {
+					notes = append(notes, TrashedNote{ID: id, Title: title})
+				}
+			}
+		}
+
+		hasMore, err := jsonReadValue(data, "bool")
+		if err != nil || hasMore != "true" {
+			break
+		}
+		page++
+	}
+
+	return notes, nil
+}
+
 func GetResourcesFromBody(input string, timestamp string, DirZet string) error {
 	pattern := `\[.*?\]\(:/([a-zA-Z0-9]{1,32})\)`
 	regex, err := regexp.Compile(pattern)

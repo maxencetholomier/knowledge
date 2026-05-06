@@ -41,15 +41,25 @@ var joplinImportCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		if !confirmed {
-			return nil
+		if confirmed {
+			writeNotesToFiles(notesToImport)
 		}
 
-		writeNotesToFiles(notesToImport)
+		notesToDelete, err := collectLocalNotesInJoplinTrash()
+		if err != nil {
+			return err
+		}
+		confirmed, err = confirmDeleteLocal(notesToDelete)
+		if err != nil {
+			return err
+		}
+		if confirmed {
+			deleteLocalNotes(notesToDelete)
+		}
+
 		return nil
 	},
 }
-
 
 func writeNotesToFiles(notesToImport []noteToImport) {
 	fmt.Printf("\nImporting %d notes...\n", len(notesToImport))
@@ -179,6 +189,66 @@ func collectNotesToImport(notebookId string) ([]noteToImport, error) {
 	}
 
 	return notesToImport, nil
+}
+
+type localNoteToDelete struct {
+	fileName string
+	title    string
+}
+
+func collectLocalNotesInJoplinTrash() ([]localNoteToDelete, error) {
+	trashed, err := joplin.GetTrashedNotes()
+	if err != nil {
+		return nil, err
+	}
+
+	var result []localNoteToDelete
+	for _, note := range trashed {
+		fileName := joplin.DecryptFilename(note.ID)
+		if fileName == "" {
+			continue
+		}
+		if _, err := os.Stat(DirZet + "/" + fileName); err == nil {
+			result = append(result, localNoteToDelete{fileName: fileName, title: note.Title})
+		}
+	}
+	return result, nil
+}
+
+func confirmDeleteLocal(notes []localNoteToDelete) (bool, error) {
+	if len(notes) == 0 {
+		fmt.Println("No local notes to delete.")
+		return false, nil
+	}
+
+	fmt.Printf("\nFound %d local note(s) deleted in Joplin:\n", len(notes))
+	for _, note := range notes {
+		timestamp := strings.TrimSuffix(note.fileName, ".md")
+		fmt.Printf("  • %s - %s\n", timestamp, note.title)
+	}
+
+	confirmed, err := prompt.Confirm("Delete these local notes?")
+	if err != nil {
+		return false, err
+	}
+	if !confirmed {
+		fmt.Println("Local deletion cancelled.")
+	}
+	return confirmed, nil
+}
+
+func deleteLocalNotes(notes []localNoteToDelete) {
+	fmt.Printf("\nDeleting %d local notes...\n", len(notes))
+	deleted := 0
+	for _, note := range notes {
+		if err := os.Remove(DirZet + "/" + note.fileName); err != nil {
+			fmt.Printf("  ✗ Failed to delete %s: %v\n", note.fileName, err)
+		} else {
+			fmt.Printf("  ✓ Deleted %s - %s\n", strings.TrimSuffix(note.fileName, ".md"), note.title)
+			deleted++
+		}
+	}
+	fmt.Printf("\nDeleted %d local notes.\n", deleted)
 }
 
 func init() {
