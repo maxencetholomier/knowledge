@@ -73,6 +73,38 @@ func StripLeadingHeading(body string) string {
 	return strings.TrimLeft(body[newline+1:], "\n")
 }
 
+type KnowledgeNote struct {
+	Timestamp string
+	Title     string
+}
+
+func FilterKnowledgeNotes(notes []Note) []KnowledgeNote {
+	var result []KnowledgeNote
+	for _, note := range notes {
+		if !strings.HasSuffix(note.ID, "aaa") {
+			continue
+		}
+		filename := DecryptFilename(note.ID)
+		if filename == "" {
+			continue
+		}
+		timestamp := strings.Split(filename, ".")[0]
+		if len(timestamp) != 14 {
+			continue
+		}
+		title := strings.Split(note.Title, "\n")[0]
+		if strings.HasPrefix(title, "#") {
+			title = strings.TrimSpace(strings.TrimPrefix(title, "#"))
+		}
+		result = append(result, KnowledgeNote{Timestamp: timestamp, Title: title})
+	}
+	return result
+}
+
+func ReconstructBody(title, body string) string {
+	return "# " + title + "\n\n" + StripLeadingHeading(body)
+}
+
 func ReplacingJoplinLink(input string, timestamp string) (string, error) {
 	pattern := `\[.*?\]\(:/[a-zA-Z0-9]{1,32}\)`
 	re, err := regexp.Compile(pattern)

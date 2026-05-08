@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	"kl/pkg/joplin"
-	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -19,30 +18,11 @@ var joplinListCmd = &cobra.Command{
 			return err
 		}
 
-		for _, note := range notes {
-			if !strings.HasSuffix(note.ID, "aaa") {
-				continue
-			}
-
-			filename := joplin.DecryptFilename(note.ID)
-			if filename == "" {
-				continue
-			}
-
-			timestamp := strings.Split(filename, ".")[0]
-			if len(timestamp) != 14 {
-				continue
-			}
-
-			title := strings.Split(note.Title, "\n")[0]
-			if strings.HasPrefix(title, "#") {
-				title = strings.TrimSpace(strings.TrimPrefix(title, "#"))
-			}
-
-			if title != "" {
-				fmt.Printf("%s - %s\n", timestamp, title)
+		for _, note := range joplin.FilterKnowledgeNotes(notes) {
+			if note.Title != "" {
+				fmt.Printf("%s - %s\n", note.Timestamp, note.Title)
 			} else {
-				fmt.Println(timestamp)
+				fmt.Println(note.Timestamp)
 			}
 		}
 		return nil

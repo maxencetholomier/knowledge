@@ -134,26 +134,8 @@ func getJoplinList() (map[string]string, error) {
 	}
 
 	notes := make(map[string]string)
-	for _, note := range joplinNotes {
-		if !strings.HasSuffix(note.ID, "aaa") {
-			continue
-		}
-
-		filename := joplin.DecryptFilename(note.ID)
-		if filename == "" {
-			continue
-		}
-
-		timestamp := strings.Split(filename, ".")[0]
-		if len(timestamp) != 14 {
-			continue
-		}
-
-		title := strings.Split(note.Title, "\n")[0]
-		if strings.HasPrefix(title, "#") {
-			title = strings.TrimSpace(strings.TrimPrefix(title, "#"))
-		}
-		notes[timestamp] = title
+	for _, note := range joplin.FilterKnowledgeNotes(joplinNotes) {
+		notes[note.Timestamp] = note.Title
 	}
 	return notes, nil
 }

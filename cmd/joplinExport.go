@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"kl/pkg/config"
 	"kl/pkg/files"
 	"kl/pkg/joplin"
 	"kl/pkg/prompt"
@@ -20,7 +19,7 @@ var joplinExportCmd = &cobra.Command{
 	Long:  `Export notes from the knowledge base to Joplin application.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 
-		notebookName, notebookId, err := getNotebookInfoForExport()
+		notebookName, notebookId, err := joplin.GetNotebookInfo(joplinExportNotebook)
 		if err != nil {
 			return err
 		}
@@ -170,24 +169,6 @@ func collectNotesToExport() ([]string, error) {
 	}
 
 	return timestamps, nil
-}
-
-func getNotebookInfoForExport() (string, string, error) {
-	notebookName := joplinExportNotebook
-	if notebookName == "" {
-		notebookName = config.GetJoplinNotebook()
-	}
-
-	var notebookId string
-	if notebookName != "" {
-		var err error
-		notebookId, err = joplin.GetNotebookIdByName(notebookName)
-		if err != nil {
-			return "", "", err
-		}
-	}
-
-	return notebookName, notebookId, nil
 }
 
 func init() {
