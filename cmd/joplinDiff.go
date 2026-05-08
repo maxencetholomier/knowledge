@@ -128,7 +128,8 @@ func getLocalList() (map[string]string, error) {
 }
 
 func getJoplinList() (map[string]string, error) {
-	joplinNotes, err := joplin.GetNotes([]string{"title"})
+	query := joplin.NoteQuery{Fields: []string{"title"}}
+	joplinNotes, err := joplin.GetNotes(query)
 	if err != nil {
 		return nil, err
 	}

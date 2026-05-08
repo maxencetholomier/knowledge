@@ -23,7 +23,8 @@ var joplinCleanCmd = &cobra.Command{
 
 		localTimestamps := files.GetTimestamps(localFiles)
 
-		joplinNotes, err := joplin.GetNotes([]string{"title"})
+		query := joplin.NoteQuery{Fields: []string{"title"}}
+		joplinNotes, err := joplin.GetNotes(query)
 		if err != nil {
 			return fmt.Errorf("failed to get Joplin notes: %w", err)
 		}

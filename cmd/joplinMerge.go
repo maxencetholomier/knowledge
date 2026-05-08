@@ -48,7 +48,8 @@ data loss may occur as the older version will be replaced by the newer one.`,
 			return err
 		}
 
-		joplinNotes, err := joplin.GetNotes([]string{"title", "body", "updated_time"})
+		query := joplin.NoteQuery{Fields: []string{"title", "body", "updated_time"}}
+		joplinNotes, err := joplin.GetNotes(query)
 		if err != nil {
 			return err
 		}

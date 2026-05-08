@@ -32,7 +32,8 @@ var joplinImportCmd = &cobra.Command{
 			return err
 		}
 
-		joplinNotes, err := joplin.GetNotes([]string{"title", "body", "parent_id"})
+		query := joplin.NoteQuery{Fields: []string{"title", "body", "parent_id"}}
+		joplinNotes, err := joplin.GetNotes(query)
 		if err != nil {
 			return err
 		}
@@ -78,9 +79,9 @@ func writeNotesToFiles(notesToImport []localNote) {
 			continue
 		}
 
-		cleanBody := joplin.ReconstructBody(note.title, note.body)
+		joplinBody := joplin.ReconstructBody(note.title, note.body)
 
-		err = joplin.GetResourcesFromBody(cleanBody, timestamp, DirZet)
+		err = joplin.GetResourcesFromBody(joplinBody, timestamp, DirZet)
 		if err != nil {
 			if strings.Contains(err.Error(), "404") {
 				fmt.Printf("Warning: Some resources not found for %s\n", timestamp)
@@ -89,15 +90,15 @@ func writeNotesToFiles(notesToImport []localNote) {
 			}
 		}
 
-		new_body, err := joplin.ReplacingJoplinLink(cleanBody, new_id)
+		localBody, err := joplin.ReplacingJoplinLink(joplinBody, new_id)
 		if err != nil {
 			fmt.Printf("Error replacing links for %s: %v\n", timestamp, err)
 			continue
 		}
 
-		new_body = strings.ReplaceAll(new_body, "&nbsp;", "")
+		localBody = strings.ReplaceAll(localBody, "&nbsp;", "")
 
-		file, err := files.Create(DirZet+"/"+note.fileName, new_body)
+		file, err := files.Create(DirZet+"/"+note.fileName, localBody)
 		if err != nil {
 			fmt.Printf("Error creating %s: %v\n", timestamp, err)
 			continue
@@ -175,7 +176,8 @@ type localNoteToDelete struct {
 }
 
 func collectLocalNotesInJoplinTrash() ([]localNoteToDelete, error) {
-	trashed, err := joplin.GetTrashedNotes()
+	query := joplin.NoteQuery{Fields: []string{"title"}, OnlyDeleted: true}
+	trashed, err := joplin.GetNotes(query)
 	if err != nil {
 		return nil, err
 	}

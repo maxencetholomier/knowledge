@@ -13,7 +13,8 @@ var joplinListCmd = &cobra.Command{
 	Short:   "List all notes in Joplin with timestamps and titles",
 	Long:    `Display all notes in Joplin showing their timestamps and titles.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		notes, err := joplin.GetNotes([]string{"title"})
+		query := joplin.NoteQuery{Fields: []string{"title"}}
+		notes, err := joplin.GetNotes(query)
 		if err != nil {
 			return err
 		}

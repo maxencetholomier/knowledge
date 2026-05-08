@@ -46,8 +46,16 @@ func fetchAllPages(baseURL string, process func(map[string]interface{})) error {
 	return nil
 }
 
-func GetNotes(fields []string) ([]Note, error) {
-	fieldsParam := "id," + strings.Join(fields, ",")
+type NoteQuery struct {
+	Fields      []string
+	OnlyDeleted bool
+}
+
+func GetNotes(q NoteQuery) ([]Note, error) {
+	fieldsParam := "id," + strings.Join(q.Fields, ",")
+	if q.OnlyDeleted {
+		fieldsParam += ",deleted_time"
+	}
 
 	token, err := config.GetJoplinToken()
 	if err != nil {
@@ -55,9 +63,18 @@ func GetNotes(fields []string) ([]Note, error) {
 	}
 
 	baseURL := "http://localhost:41184/notes?token=" + token + "&fields=" + fieldsParam + "&limit=50"
+	if q.OnlyDeleted {
+		baseURL += "&include_deleted=1"
+	}
 
 	var notes []Note
 	err = fetchAllPages(baseURL, func(item map[string]interface{}) {
+		if q.OnlyDeleted {
+			deletedTime, _ := item["deleted_time"].(float64)
+			if deletedTime == 0 {
+				return
+			}
+		}
 		note := Note{}
 		if id, ok := item["id"].(string); ok {
 			note.ID = id
@@ -208,24 +225,6 @@ func GetIds(idType string) ([]string, error) {
 	return ids, nil
 }
 
-func GetTrashedNotes() ([]Note, error) {
-	token, err := config.GetJoplinToken()
-	if err != nil {
-		return nil, err
-	}
-	baseURL := "http://localhost:41184/notes?token=" + token + "&include_deleted=1&fields=id,title,deleted_time&limit=50"
-
-	var notes []Note
-	err = fetchAllPages(baseURL, func(item map[string]interface{}) {
-		id, _ := item["id"].(string)
-		title, _ := item["title"].(string)
-		deletedTime, _ := item["deleted_time"].(float64)
-		if id != "" && deletedTime > 0 {
-			notes = append(notes, Note{ID: id, Title: title})
-		}
-	})
-	return notes, err
-}
 
 func GetResourcesFromBody(input string, timestamp string, DirZet string) error {
 	pattern := `\[.*?\]\(:/([a-zA-Z0-9]{1,32})\)`
