@@ -20,10 +20,34 @@ type Note struct {
 	UpdatedTime time.Time
 }
 
+func fetchAllPages(baseURL string, process func(map[string]interface{})) error {
+	page := 0
+	for {
+		body, err := httpGet(baseURL + "&page=" + strconv.Itoa(page))
+		if err != nil {
+			return err
+		}
+		var data map[string]interface{}
+		if err := json.Unmarshal(body, &data); err != nil {
+			return err
+		}
+		items, _ := data["items"].([]interface{})
+		for _, item := range items {
+			if itemMap, ok := item.(map[string]interface{}); ok {
+				process(itemMap)
+			}
+		}
+		hasMore, err := jsonReadValue(data, "bool")
+		if err != nil || hasMore != "true" {
+			break
+		}
+		page++
+	}
+	return nil
+}
+
 func GetNotes(fields []string) ([]Note, error) {
 	fieldsParam := "id," + strings.Join(fields, ",")
-	var notes []Note
-	page := 0
 
 	token, err := config.GetJoplinToken()
 	if err != nil {
@@ -32,54 +56,27 @@ func GetNotes(fields []string) ([]Note, error) {
 
 	baseURL := "http://localhost:41184/notes?token=" + token + "&fields=" + fieldsParam + "&limit=50"
 
-	for {
-		body, err := httpGet(baseURL + "&page=" + strconv.Itoa(page))
-		if err != nil {
-			return nil, err
+	var notes []Note
+	err = fetchAllPages(baseURL, func(item map[string]interface{}) {
+		note := Note{}
+		if id, ok := item["id"].(string); ok {
+			note.ID = id
 		}
-
-		var data map[string]interface{}
-		if err := json.Unmarshal(body, &data); err != nil {
-			return nil, err
+		if title, ok := item["title"].(string); ok {
+			note.Title = title
 		}
-
-		items, ok := data["items"].([]interface{})
-		if !ok {
-			return nil, fmt.Errorf("items key not found or is not a list")
+		if b, ok := item["body"].(string); ok {
+			note.Body = b
 		}
-
-		for _, item := range items {
-			itemMap, ok := item.(map[string]interface{})
-			if !ok {
-				continue
-			}
-			note := Note{}
-			if id, ok := itemMap["id"].(string); ok {
-				note.ID = id
-			}
-			if title, ok := itemMap["title"].(string); ok {
-				note.Title = title
-			}
-			if b, ok := itemMap["body"].(string); ok {
-				note.Body = b
-			}
-			if parentID, ok := itemMap["parent_id"].(string); ok {
-				note.ParentID = parentID
-			}
-			if updatedTime, ok := itemMap["updated_time"].(float64); ok {
-				note.UpdatedTime = time.UnixMilli(int64(updatedTime))
-			}
-			notes = append(notes, note)
+		if parentID, ok := item["parent_id"].(string); ok {
+			note.ParentID = parentID
 		}
-
-		hasMore, err := jsonReadValue(data, "bool")
-		if err != nil || hasMore != "true" {
-			break
+		if updatedTime, ok := item["updated_time"].(float64); ok {
+			note.UpdatedTime = time.UnixMilli(int64(updatedTime))
 		}
-		page++
-	}
-
-	return notes, nil
+		notes = append(notes, note)
+	})
+	return notes, err
 }
 
 func GetField(id string, field string) (string, error) {
@@ -211,57 +208,23 @@ func GetIds(idType string) ([]string, error) {
 	return ids, nil
 }
 
-type TrashedNote struct {
-	ID    string
-	Title string
-}
-
-func GetTrashedNotes() ([]TrashedNote, error) {
-	var notes []TrashedNote
-	limit := "50"
-	page := 0
-
+func GetTrashedNotes() ([]Note, error) {
 	token, err := config.GetJoplinToken()
 	if err != nil {
 		return nil, err
 	}
-	baseURL := "http://localhost:41184/notes?token=" + token + "&include_deleted=1&fields=id,title,deleted_time"
+	baseURL := "http://localhost:41184/notes?token=" + token + "&include_deleted=1&fields=id,title,deleted_time&limit=50"
 
-	for {
-		url := baseURL + "&limit=" + limit + "&page=" + strconv.Itoa(page)
-		body, err := httpGet(url)
-		if err != nil {
-			return nil, err
+	var notes []Note
+	err = fetchAllPages(baseURL, func(item map[string]interface{}) {
+		id, _ := item["id"].(string)
+		title, _ := item["title"].(string)
+		deletedTime, _ := item["deleted_time"].(float64)
+		if id != "" && deletedTime > 0 {
+			notes = append(notes, Note{ID: id, Title: title})
 		}
-
-		var data map[string]interface{}
-		if err := json.Unmarshal(body, &data); err != nil {
-			return nil, err
-		}
-
-		if items, ok := data["items"].([]interface{}); ok {
-			for _, item := range items {
-				itemMap, ok := item.(map[string]interface{})
-				if !ok {
-					continue
-				}
-				id, _ := itemMap["id"].(string)
-				title, _ := itemMap["title"].(string)
-				deletedTime, _ := itemMap["deleted_time"].(float64)
-				if id != "" && deletedTime > 0 {
-					notes = append(notes, TrashedNote{ID: id, Title: title})
-				}
-			}
-		}
-
-		hasMore, err := jsonReadValue(data, "bool")
-		if err != nil || hasMore != "true" {
-			break
-		}
-		page++
-	}
-
-	return notes, nil
+	})
+	return notes, err
 }
 
 func GetResourcesFromBody(input string, timestamp string, DirZet string) error {
