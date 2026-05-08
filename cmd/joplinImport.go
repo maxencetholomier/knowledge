@@ -14,7 +14,7 @@ import (
 
 var joplinImportNotebook string
 
-type noteToImport struct {
+type localNote struct {
 	id       string
 	title    string
 	body     string
@@ -66,7 +66,7 @@ var joplinImportCmd = &cobra.Command{
 	},
 }
 
-func writeNotesToFiles(notesToImport []noteToImport) {
+func writeNotesToFiles(notesToImport []localNote) {
 	fmt.Printf("\nImporting %d notes...\n", len(notesToImport))
 
 	for _, note := range notesToImport {
@@ -109,7 +109,7 @@ func writeNotesToFiles(notesToImport []noteToImport) {
 	fmt.Printf("\nSuccessfully imported %d notes from Joplin.\n", len(notesToImport))
 }
 
-func confirmImport(notesToImport []noteToImport, notebookName string) (bool, error) {
+func confirmImport(notesToImport []localNote, notebookName string) (bool, error) {
 	if len(notesToImport) == 0 {
 		fmt.Println("No new notes to import from Joplin.")
 		return false, nil
@@ -142,8 +142,8 @@ func confirmImport(notesToImport []noteToImport, notebookName string) (bool, err
 	return true, nil
 }
 
-func collectNotesToImport(notes []joplin.Note, notebookId string) ([]noteToImport, error) {
-	var notesToImport []noteToImport
+func collectNotesToImport(notes []joplin.Note, notebookId string) ([]localNote, error) {
+	var notesToImport []localNote
 
 	for _, note := range notes {
 		if notebookId != "" && note.ParentID != notebookId {
@@ -157,7 +157,7 @@ func collectNotesToImport(notes []joplin.Note, notebookId string) ([]noteToImpor
 		}
 
 		if _, err := os.Stat(DirZet + "/" + fileName); os.IsNotExist(err) {
-			notesToImport = append(notesToImport, noteToImport{
+			notesToImport = append(notesToImport, localNote{
 				id:       note.ID,
 				title:    note.Title,
 				body:     note.Body,

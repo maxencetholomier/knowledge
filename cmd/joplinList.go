@@ -18,7 +18,7 @@ var joplinListCmd = &cobra.Command{
 			return err
 		}
 
-		for _, note := range joplin.FilterKnowledgeNotes(notes) {
+		for _, note := range joplin.FilterLocalNotes(notes) {
 			if note.Title != "" {
 				fmt.Printf("%s - %s\n", note.Timestamp, note.Title)
 			} else {

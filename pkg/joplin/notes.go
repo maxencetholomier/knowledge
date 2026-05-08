@@ -73,13 +73,13 @@ func StripLeadingHeading(body string) string {
 	return strings.TrimLeft(body[newline+1:], "\n")
 }
 
-type KnowledgeNote struct {
+type LocalNote struct {
 	Timestamp string
 	Title     string
 }
 
-func FilterKnowledgeNotes(notes []Note) []KnowledgeNote {
-	var result []KnowledgeNote
+func FilterLocalNotes(notes []Note) []LocalNote {
+	var result []LocalNote
 	for _, note := range notes {
 		if !strings.HasSuffix(note.ID, "aaa") {
 			continue
@@ -96,7 +96,7 @@ func FilterKnowledgeNotes(notes []Note) []KnowledgeNote {
 		if strings.HasPrefix(title, "#") {
 			title = strings.TrimSpace(strings.TrimPrefix(title, "#"))
 		}
-		result = append(result, KnowledgeNote{Timestamp: timestamp, Title: title})
+		result = append(result, LocalNote{Timestamp: timestamp, Title: title})
 	}
 	return result
 }
