@@ -152,77 +152,20 @@ func GetTimestamps(idsType string) ([]string, error) {
 }
 
 func GetIds(idType string) ([]string, error) {
-	ids := []string{}
-	limit := "50"
-	page := 0
-
 	token, err := config.GetJoplinToken()
 	if err != nil {
 		return nil, err
 	}
-	url := "http://localhost:41184/" + idType + "?token=" + token
-	url_formated := url + "&limit=" + limit + "&page=" + strconv.Itoa(page)
 
-	body, err := httpGet(url_formated)
-	if err != nil {
-		return nil, err
-	}
+	baseURL := "http://localhost:41184/" + idType + "?token=" + token + "&limit=50"
 
-	var data map[string]interface{}
-	err = json.Unmarshal(body, &data)
-	if err != nil {
-		return nil, err
-	}
-
-	ids, err = getIdsFromJson(data, ids)
-	if err != nil {
-		return nil, err
-	}
-
-	hasMore, err := jsonReadValue(data, "bool")
-	if err != nil {
-		return nil, err
-	}
-
-	for hasMore == "true" {
-
-		page = page + 1
-
-		url_formated = url + "&limit=" + limit + "&page=" + strconv.Itoa(page)
-
-		body, err := httpGet(url_formated)
-		if err != nil {
-			return nil, err
+	var ids []string
+	err = fetchAllPages(baseURL, func(item map[string]interface{}) {
+		if id, ok := item["id"].(string); ok {
+			ids = append(ids, id)
 		}
-
-		var data map[string]interface{}
-		err = json.Unmarshal(body, &data)
-		if err != nil {
-			return nil, err
-		}
-
-		ids, err = getIdsFromJson(data, ids)
-		if err != nil {
-			return nil, err
-		}
-
-		hasMore, err = jsonReadValue(data, "bool")
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	if idType == "resources" {
-		ids_image := []string{}
-
-		for _, id := range ids {
-			if strings.HasSuffix(id, "bbb") {
-				ids_image = append(ids_image, id)
-			}
-		}
-	}
-
-	return ids, nil
+	})
+	return ids, err
 }
 
 func DownloadResourcesFromBody(input string, timestamp string, DirZet string) error {

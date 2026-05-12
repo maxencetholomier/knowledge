@@ -33,22 +33,3 @@ func jsonReadValue(data map[string]interface{}, expectedType string) (string, er
 
 }
 
-func getIdsFromJson(data map[string]interface{}, ids []string) ([]string, error) {
-	if items, ok := data["items"].([]interface{}); ok {
-		for _, item := range items {
-			if itemMap, ok := item.(map[string]interface{}); ok {
-				if id, ok := itemMap["id"].(string); ok {
-					ids = append(ids, id)
-				} else {
-					return nil, fmt.Errorf("id field not found or not a string")
-				}
-			} else {
-				return nil, fmt.Errorf("item is not a map")
-			}
-		}
-	} else {
-		return nil, fmt.Errorf("items key not found or is not a list")
-	}
-
-	return ids, nil
-}
