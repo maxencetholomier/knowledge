@@ -24,12 +24,12 @@ var joplinExportCmd = &cobra.Command{
 			return err
 		}
 
-		timestamps, err := collectNotesToExport()
+		notes, err := collectNotesToExport()
 		if err != nil {
 			return err
 		}
 
-		confirmed, err := confirmExport(timestamps, notebookName)
+		confirmed, err := confirmExport(notes, notebookName)
 		if err != nil {
 			return err
 		}
@@ -37,8 +37,13 @@ var joplinExportCmd = &cobra.Command{
 			return nil
 		}
 
-		return exportNotesToJoplin(timestamps, notebookId)
+		return exportNotesToJoplin(notes, notebookId)
 	},
+}
+
+type localNoteToExport struct {
+	timestamp string
+	title     string
 }
 
 type exportError struct {
@@ -46,23 +51,23 @@ type exportError struct {
 	err       error
 }
 
-func exportNotesToJoplin(timestamps []string, notebookId string) error {
+func exportNotesToJoplin(notes []localNoteToExport, notebookId string) error {
 	var noteErrors []exportError
 	var resourceErrors []exportError
 
-	fmt.Printf("\nExporting %d notes...\n", len(timestamps))
+	fmt.Printf("\nExporting %d notes...\n", len(notes))
 
 	processed := make(map[string]bool)
-	for _, timestamp := range timestamps {
-		if processed[timestamp] {
-			fmt.Printf("Skipping duplicate timestamp: %s\n", timestamp)
+	for _, note := range notes {
+		if processed[note.timestamp] {
+			fmt.Printf("Skipping duplicate timestamp: %s\n", note.timestamp)
 			continue
 		}
-		processed[timestamp] = true
+		processed[note.timestamp] = true
 
-		zetBody, err := os.ReadFile(DirZet + "/" + timestamp + ".md")
+		zetBody, err := os.ReadFile(DirZet + "/" + note.timestamp + ".md")
 		if err != nil {
-			noteErrors = append(noteErrors, exportError{timestamp, fmt.Errorf("failed to read note file: %w", err)})
+			noteErrors = append(noteErrors, exportError{note.timestamp, fmt.Errorf("failed to read note file: %w", err)})
 			continue
 		}
 
@@ -70,21 +75,21 @@ func exportNotesToJoplin(timestamps []string, notebookId string) error {
 
 		err = joplin.PostResourceFromBody(body, DirZet)
 		if err != nil {
-			resourceErrors = append(resourceErrors, exportError{timestamp, err})
+			resourceErrors = append(resourceErrors, exportError{note.timestamp, err})
 		}
 
 		if notebookId != "" {
-			err = joplin.PostToJoplinWithNotebook(timestamp+".md", DirZet, notebookId)
+			err = joplin.PostToJoplinWithNotebook(note.timestamp+".md", DirZet, notebookId)
 		} else {
-			err = joplin.PostToJoplin(timestamp+".md", DirZet)
+			err = joplin.PostToJoplin(note.timestamp+".md", DirZet)
 		}
 		if err != nil {
-			noteErrors = append(noteErrors, exportError{timestamp, err})
+			noteErrors = append(noteErrors, exportError{note.timestamp, err})
 			continue
 		}
 	}
 
-	fmt.Printf("\nSuccessfully exported %d notes to Joplin.\n", len(timestamps)-len(noteErrors))
+	fmt.Printf("\nSuccessfully exported %d notes to Joplin.\n", len(notes)-len(noteErrors))
 	if len(noteErrors) > 0 {
 		fmt.Printf("Warning: %d note(s) could not be exported:\n", len(noteErrors))
 		for _, e := range noteErrors {
@@ -101,39 +106,23 @@ func exportNotesToJoplin(timestamps []string, notebookId string) error {
 	return nil
 }
 
-func confirmExport(timestamps []string, notebookName string) (bool, error) {
-	if len(timestamps) == 0 {
+func confirmExport(notes []localNoteToExport, notebookName string) (bool, error) {
+	if len(notes) == 0 {
 		fmt.Println("No notes to export - all local notes are already in Joplin.")
 		return false, nil
 	}
 
 	if notebookName != "" {
-		fmt.Printf("Will export %d notes to notebook '%s':\n", len(timestamps), notebookName)
+		fmt.Printf("Will export %d notes to notebook '%s':\n", len(notes), notebookName)
 	} else {
-		fmt.Printf("Will export %d notes to Joplin default location:\n", len(timestamps))
+		fmt.Printf("Will export %d notes to Joplin default location:\n", len(notes))
 	}
 
-	for _, timestamp := range timestamps {
-		fileName := timestamp + ".md"
-		filePath := DirZet + "/" + fileName
-
-		file, err := os.Open(filePath)
-		if err != nil {
-			fmt.Printf("  • %s (unable to read title)\n", timestamp)
-			continue
-		}
-		defer file.Close()
-
-		fileInfo := files.FileInfo{Name: fileName, Path: filePath}
-		title, err := fileInfo.GetTitle()
-		if err != nil {
-			fmt.Printf("  • %s (unable to read title)\n", timestamp)
+	for _, note := range notes {
+		if note.title != "" {
+			fmt.Printf("  • %s - %s\n", note.timestamp, note.title)
 		} else {
-			if title != "" {
-				fmt.Printf("  • %s - %s\n", timestamp, title)
-			} else {
-				fmt.Printf("  • %s\n", timestamp)
-			}
+			fmt.Printf("  • %s\n", note.timestamp)
 		}
 	}
 
@@ -149,7 +138,7 @@ func confirmExport(timestamps []string, notebookName string) (bool, error) {
 	return true, nil
 }
 
-func collectNotesToExport() ([]string, error) {
+func collectNotesToExport() ([]localNoteToExport, error) {
 	scanner := files.NewScanner(DirZet).WithExtensions("md")
 	fileList, err := scanner.ListFiles()
 	if err != nil {
@@ -163,12 +152,21 @@ func collectNotesToExport() ([]string, error) {
 		return nil, err
 	}
 
-	timestamps, err := utils.ANotInB(fileTimestamps, joplinTimestamps)
+	toExport, err := utils.ANotInB(fileTimestamps, joplinTimestamps)
 	if err != nil {
 		return nil, err
 	}
 
-	return timestamps, nil
+	var result []localNoteToExport
+	for _, timestamp := range toExport {
+		note := localNoteToExport{timestamp: timestamp}
+		fileInfo := files.FileInfo{Name: timestamp + ".md", Path: DirZet + "/" + timestamp + ".md"}
+		if title, err := fileInfo.GetTitle(); err == nil {
+			note.title = title
+		}
+		result = append(result, note)
+	}
+	return result, nil
 }
 
 func init() {

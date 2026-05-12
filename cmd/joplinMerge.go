@@ -89,7 +89,7 @@ func applyMergeActions(mergeActions []mergeAction, notebookId string) {
 
 	for _, action := range mergeActions {
 		if action.action == "pull_from_joplin" {
-			cleanBody := joplin.ReconstructBody(action.title, action.joplinBody)
+			cleanBody := "# " + action.title + "\n\n" + joplin.StripLeadingHeading(action.joplinBody)
 			file, err := files.Create(DirZet+"/"+action.fileName, joplin.ReplaceIdsToLink(cleanBody))
 			if err != nil {
 				fmt.Printf("Error pulling %s: %v\n", action.fileName, err)
@@ -150,7 +150,7 @@ func getMergeActions(joplinNotes []joplin.Note, forceAction string) ([]mergeActi
 
 		localContent, readErr := os.ReadFile(DirZet + "/" + fileName)
 
-		normalizedJoplinContent := strings.TrimSpace(joplin.ReconstructBody(title, joplin.ReplaceIdsToLink(body)))
+		normalizedJoplinContent := strings.TrimSpace("# " + title + "\n\n" + joplin.StripLeadingHeading(joplin.ReplaceIdsToLink(body)))
 
 		action := mergeAction{
 			fileName:             fileName,

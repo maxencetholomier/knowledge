@@ -15,10 +15,11 @@ import (
 var joplinImportNotebook string
 
 type localNote struct {
-	id       string
-	title    string
-	body     string
-	fileName string
+	id          string
+	title       string
+	body        string
+	fileName    string
+	fileContent string
 }
 
 var joplinImportCmd = &cobra.Command{
@@ -38,16 +39,14 @@ var joplinImportCmd = &cobra.Command{
 			return err
 		}
 
-		notesToImport, err := collectNotesToImport(joplinNotes, notebookId)
-		if err != nil {
-			return err
-		}
+		notesToImport := collectNotesToImport(joplinNotes, notebookId)
 
 		confirmed, err := confirmImport(notesToImport, notebookName)
 		if err != nil {
 			return err
 		}
 		if confirmed {
+			downloadResources(notesToImport)
 			writeNotesToFiles(notesToImport)
 		}
 
@@ -67,43 +66,28 @@ var joplinImportCmd = &cobra.Command{
 	},
 }
 
+func downloadResources(notes []localNote) {
+	for _, note := range notes {
+		timestamp := strings.TrimSuffix(note.fileName, ".md")
+		if err := joplin.GetResourcesFromBody(note.body, timestamp, DirZet); err != nil {
+			if strings.Contains(err.Error(), "404") {
+				fmt.Printf("Warning: Some resources not found for %s\n", timestamp)
+			} else {
+				fmt.Printf("Error downloading resources for %s: %v\n", timestamp, err)
+			}
+		}
+	}
+}
+
 func writeNotesToFiles(notesToImport []localNote) {
 	fmt.Printf("\nImporting %d notes...\n", len(notesToImport))
 
 	for _, note := range notesToImport {
-		timestamp := strings.TrimSuffix(note.fileName, ".md")
-
-		new_id, err := joplin.ReplaceTimestampToIds(timestamp)
+		file, err := files.Create(DirZet+"/"+note.fileName, note.fileContent)
 		if err != nil {
-			fmt.Printf("Error processing %s: %v\n", timestamp, err)
+			fmt.Printf("Error creating %s: %v\n", strings.TrimSuffix(note.fileName, ".md"), err)
 			continue
 		}
-
-		joplinBody := joplin.ReconstructBody(note.title, note.body)
-
-		err = joplin.GetResourcesFromBody(joplinBody, timestamp, DirZet)
-		if err != nil {
-			if strings.Contains(err.Error(), "404") {
-				fmt.Printf("Warning: Some resources not found for %s\n", timestamp)
-			} else {
-				fmt.Printf("Error getting resources for %s: %v\n", timestamp, err)
-			}
-		}
-
-		localBody, err := joplin.ReplacingJoplinLink(joplinBody, new_id)
-		if err != nil {
-			fmt.Printf("Error replacing links for %s: %v\n", timestamp, err)
-			continue
-		}
-
-		localBody = strings.ReplaceAll(localBody, "&nbsp;", "")
-
-		file, err := files.Create(DirZet+"/"+note.fileName, localBody)
-		if err != nil {
-			fmt.Printf("Error creating %s: %v\n", timestamp, err)
-			continue
-		}
-
 		defer file.Close()
 	}
 
@@ -143,59 +127,64 @@ func confirmImport(notesToImport []localNote, notebookName string) (bool, error)
 	return true, nil
 }
 
-func collectNotesToImport(notes []joplin.Note, notebookId string) ([]localNote, error) {
+func isNoteInNotebook(note joplin.Note, notebookId string) bool {
+	return notebookId == "" || note.ParentID == notebookId
+}
+
+func collectNotesToImport(notes []joplin.Note, notebookId string) []localNote {
 	var notesToImport []localNote
 
 	for _, note := range notes {
-		if notebookId != "" && note.ParentID != notebookId {
+		if !isNoteInNotebook(note, notebookId) {
 			continue
 		}
 
 		fileName := joplin.DecryptFilename(note.ID)
 		if fileName == "" {
-			timestamp := utils.CreateTimestamp()
-			fileName = timestamp + ".md"
+			fileName = utils.CreateTimestamp() + ".md"
 		}
+		timestamp := strings.TrimSuffix(fileName, ".md")
 
 		if _, err := os.Stat(DirZet + "/" + fileName); os.IsNotExist(err) {
+			fileContent, err := joplin.NoteToMarkdown(note.Title, note.Body, timestamp)
+			if err != nil {
+				fmt.Printf("Error processing %s: %v\n", timestamp, err)
+				continue
+			}
 			notesToImport = append(notesToImport, localNote{
-				id:       note.ID,
-				title:    note.Title,
-				body:     note.Body,
-				fileName: fileName,
+				id:          note.ID,
+				title:       note.Title,
+				body:        note.Body,
+				fileName:    fileName,
+				fileContent: fileContent,
 			})
 		}
 	}
 
-	return notesToImport, nil
+	return notesToImport
 }
 
-type localNoteToDelete struct {
-	fileName string
-	title    string
-}
-
-func collectLocalNotesInJoplinTrash() ([]localNoteToDelete, error) {
+func collectLocalNotesInJoplinTrash() ([]localNote, error) {
 	query := joplin.NoteQuery{Fields: []string{"title"}, OnlyDeleted: true}
 	trashed, err := joplin.GetNotes(query)
 	if err != nil {
 		return nil, err
 	}
 
-	var result []localNoteToDelete
+	var result []localNote
 	for _, note := range trashed {
 		fileName := joplin.DecryptFilename(note.ID)
 		if fileName == "" {
 			continue
 		}
 		if _, err := os.Stat(DirZet + "/" + fileName); err == nil {
-			result = append(result, localNoteToDelete{fileName: fileName, title: note.Title})
+			result = append(result, localNote{fileName: fileName, title: note.Title})
 		}
 	}
 	return result, nil
 }
 
-func confirmDeleteLocal(notes []localNoteToDelete) (bool, error) {
+func confirmDeleteLocal(notes []localNote) (bool, error) {
 	if len(notes) == 0 {
 		fmt.Println("No local notes to delete.")
 		return false, nil
@@ -217,7 +206,7 @@ func confirmDeleteLocal(notes []localNoteToDelete) (bool, error) {
 	return confirmed, nil
 }
 
-func deleteLocalNotes(notes []localNoteToDelete) {
+func deleteLocalNotes(notes []localNote) {
 	fmt.Printf("\nDeleting %d local notes...\n", len(notes))
 	deleted := 0
 	for _, note := range notes {

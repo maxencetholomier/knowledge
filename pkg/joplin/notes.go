@@ -101,8 +101,21 @@ func FilterLocalNotes(notes []Note) []LocalNote {
 	return result
 }
 
-func ReconstructBody(title, body string) string {
-	return "# " + title + "\n\n" + StripLeadingHeading(body)
+func ConvertResourceLinks(content, timestamp string) (string, error) {
+	id, err := ReplaceTimestampToIds(timestamp)
+	if err != nil {
+		return "", err
+	}
+	return ReplacingJoplinLink(content, id)
+}
+
+func NoteToMarkdown(title, body, timestamp string) (string, error) {
+	content := "# " + title + "\n\n" + StripLeadingHeading(body)
+	content, err := ConvertResourceLinks(content, timestamp)
+	if err != nil {
+		return "", err
+	}
+	return strings.ReplaceAll(content, "&nbsp;", ""), nil
 }
 
 func ReplacingJoplinLink(input string, timestamp string) (string, error) {
