@@ -13,6 +13,16 @@ import (
 
 var joplinExportNotebook string
 
+type localNoteToExport struct {
+	timestamp string
+	title     string
+}
+
+type exportError struct {
+	timestamp string
+	err       error
+}
+
 var joplinExportCmd = &cobra.Command{
 	Use:   "export",
 	Short: "Export notes to Joplin",
@@ -39,16 +49,6 @@ var joplinExportCmd = &cobra.Command{
 
 		return exportNotesToJoplin(notes, notebookId)
 	},
-}
-
-type localNoteToExport struct {
-	timestamp string
-	title     string
-}
-
-type exportError struct {
-	timestamp string
-	err       error
 }
 
 func exportNotesToJoplin(notes []localNoteToExport, notebookId string) error {
