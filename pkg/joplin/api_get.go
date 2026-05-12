@@ -225,8 +225,7 @@ func GetIds(idType string) ([]string, error) {
 	return ids, nil
 }
 
-
-func GetResourcesFromBody(input string, timestamp string, DirZet string) error {
+func DownloadResourcesFromBody(input string, timestamp string, DirZet string) error {
 	pattern := `\[.*?\]\(:/([a-zA-Z0-9]{1,32})\)`
 	regex, err := regexp.Compile(pattern)
 	if err != nil {
@@ -239,7 +238,7 @@ func GetResourcesFromBody(input string, timestamp string, DirZet string) error {
 	}
 	for index, match := range matches {
 		if len(match) >= 2 {
-			err := getResource(match[1], timestamp, index, DirZet)
+			err := downloadResource(match[1], timestamp, index, DirZet)
 			if err != nil {
 				return err
 			}
@@ -275,7 +274,7 @@ func getField(id string, field string) (interface{}, error) {
 	return value, nil
 }
 
-func getResource(id string, name string, index int, DirZet string) error {
+func downloadResource(id string, name string, index int, DirZet string) error {
 
 	token, err := config.GetJoplinToken()
 	if err != nil {
