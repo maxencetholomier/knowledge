@@ -168,32 +168,6 @@ func DownloadResourcesFromBody(input string, timestamp string, DirZet string) er
 	return nil
 }
 
-func getField(id string, field string) (interface{}, error) {
-
-	token, err := config.GetJoplinToken()
-	if err != nil {
-		return "", err
-	}
-	url := "http://localhost:41184/notes/" + id + "?token=" + token + "&fields=id," + field
-
-	bodyAddr, err := httpGet(url)
-	if err != nil {
-		return "", err
-	}
-
-	var data map[string]interface{}
-	err = json.Unmarshal(bodyAddr, &data)
-	if err != nil {
-		return "", err
-	}
-
-	value, ok := data[field]
-	if !ok {
-		return "", fmt.Errorf("key " + field + " not found in JSON")
-	}
-	return value, nil
-}
-
 func downloadResource(id string, name string, index int, DirZet string) error {
 
 	token, err := config.GetJoplinToken()
