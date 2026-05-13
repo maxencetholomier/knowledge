@@ -54,7 +54,7 @@ func postToJoplin(fileName string, DirZet string, notebookId string, index int) 
 		return err
 	}
 
-	jsonData, err := get_data("POST", fileName, DirZet, notebookId)
+	jsonData, err := noteToJSON("POST", fileName, DirZet, notebookId)
 	if err != nil {
 		return err
 	}
@@ -81,7 +81,7 @@ func putNoteToJoplin(fileName string, DirZet string, notebookId string) error {
 		return err
 	}
 
-	jsonData, err := get_data("PUT", fileName, DirZet, notebookId)
+	jsonData, err := noteToJSON("PUT", fileName, DirZet, notebookId)
 	if err != nil {
 		return err
 	}
@@ -130,69 +130,39 @@ func httpSend(method string, url string, b bytes.Buffer, contentType string, con
 	return err
 }
 
-func get_data(method string, filename string, DirZet string, notebookId string) ([]byte, error) {
-
+func noteToJSON(method string, filename string, DirZet string, notebookId string) ([]byte, error) {
 	file, err := os.ReadFile(DirZet + "/" + filename)
 	if err != nil {
 		return nil, err
 	}
 
-	var data map[string]string
+	content, err := ReplaceTimestampToIds(string(file))
+	if err != nil {
+		return nil, err
+	}
+
+	title := utils.GetFirstLine(content)
+	title = strings.TrimPrefix(title, "#")
+	title = strings.Trim(title, " ")
+
+	lines := strings.Split(content, "\n")
+	body := ""
+	if len(lines) > 1 {
+		body = strings.Join(lines[1:], "\n")
+		body = strings.TrimLeft(body, "\n")
+	}
+
+	data := map[string]string{
+		"title": title,
+		"body":  body,
+	}
 
 	if method == "POST" {
-		content, err := ReplaceTimestampToIds(string(file))
-		if err != nil {
-			return nil, err
-		}
+		data["id"] = EncryptFilename(filename, 0)
+	}
 
-		title := utils.GetFirstLine(content)
-		title = strings.TrimPrefix(title, "#")
-		title = strings.Trim(title, " ")
-
-		lines := strings.Split(content, "\n")
-		bodyWithoutTitle := ""
-		if len(lines) > 1 {
-			bodyWithoutTitle = strings.Join(lines[1:], "\n")
-			bodyWithoutTitle = strings.TrimLeft(bodyWithoutTitle, "\n")
-		}
-
-		id := EncryptFilename(filename, 0)
-
-		data = map[string]string{
-			"id":    id,
-			"title": title,
-			"body":  bodyWithoutTitle,
-		}
-
-		if notebookId != "" {
-			data["parent_id"] = notebookId
-		}
-	} else {
-
-		content, err := ReplaceTimestampToIds(string(file))
-		if err != nil {
-			return nil, err
-		}
-
-		title := utils.GetFirstLine(content)
-		title = strings.TrimPrefix(title, "#")
-		title = strings.Trim(title, " ")
-
-		lines := strings.Split(content, "\n")
-		bodyWithoutTitle := ""
-		if len(lines) > 1 {
-			bodyWithoutTitle = strings.Join(lines[1:], "\n")
-			bodyWithoutTitle = strings.TrimLeft(bodyWithoutTitle, "\n")
-		}
-
-		data = map[string]string{
-			"title": title,
-			"body":  bodyWithoutTitle,
-		}
-
-		if notebookId != "" {
-			data["parent_id"] = notebookId
-		}
+	if notebookId != "" {
+		data["parent_id"] = notebookId
 	}
 
 	jsonData, err := json.Marshal(data)
