@@ -15,7 +15,7 @@ func GetNotebookInfo(notebookName string) (string, string, error) {
 	var notebookId string
 	if notebookName != "" {
 		var err error
-		notebookId, err = GetNotebookIdByName(notebookName)
+		notebookId, err = getNotebookIdByName(notebookName)
 		if err != nil {
 			return "", "", err
 		}
@@ -24,7 +24,7 @@ func GetNotebookInfo(notebookName string) (string, string, error) {
 	return notebookName, notebookId, nil
 }
 
-func ReplaceTimestampToIds(line string) (string, error) {
+func replaceTimestampToIds(line string) (string, error) {
 	re := regexp.MustCompile(`[0-9]{14}(?:_[0-9]+)?\.(md|png|jpeg|jpg|svg)?`)
 
 	index := 0
@@ -101,24 +101,24 @@ func FilterLocalNotes(notes []Note) []LocalNote {
 	return result
 }
 
-func ConvertResourceLinks(content, timestamp string) (string, error) {
-	id, err := ReplaceTimestampToIds(timestamp)
+func convertResourceLinks(content, timestamp string) (string, error) {
+	id, err := replaceTimestampToIds(timestamp)
 	if err != nil {
 		return "", err
 	}
-	return ReplacingJoplinLink(content, id)
+	return replacingJoplinLink(content, id)
 }
 
 func NoteToMarkdown(title, body, timestamp string) (string, error) {
 	content := "# " + title + "\n\n" + StripLeadingHeading(body)
-	content, err := ConvertResourceLinks(content, timestamp)
+	content, err := convertResourceLinks(content, timestamp)
 	if err != nil {
 		return "", err
 	}
 	return strings.ReplaceAll(content, "&nbsp;", ""), nil
 }
 
-func ReplacingJoplinLink(input string, timestamp string) (string, error) {
+func replacingJoplinLink(input string, timestamp string) (string, error) {
 	pattern := `\[.*?\]\(:/[a-zA-Z0-9]{1,32}\)`
 	re, err := regexp.Compile(pattern)
 	if err != nil {

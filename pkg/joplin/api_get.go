@@ -94,7 +94,7 @@ func GetNotes(q NoteQuery) ([]Note, error) {
 }
 
 func GetTimestamps(idsType string) ([]string, error) {
-	ids, err := GetIds(idsType)
+	ids, err := getIds(idsType)
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +125,7 @@ func GetTimestamps(idsType string) ([]string, error) {
 	return timestamps, nil
 }
 
-func GetIds(idType string) ([]string, error) {
+func getIds(idType string) ([]string, error) {
 	url, err := buildJoplinURL(idType, "&limit=50")
 	if err != nil {
 		return nil, err
@@ -191,18 +191,18 @@ func httpGet(url string) ([]byte, error) {
 	return httpclient.Get(url, platformDetector)
 }
 
-func GetNotebookIdByName(notebookName string) (string, error) {
+func getNotebookIdByName(notebookName string) (string, error) {
 	if notebookName == "" {
 		return "", nil
 	}
 
-	ids, err := GetIds("folders")
+	ids, err := getIds("folders")
 	if err != nil {
 		return "", err
 	}
 
 	for _, id := range ids {
-		title, err := GetNotebookField(id, "title")
+		title, err := getNotebookField(id, "title")
 		if err != nil {
 			continue
 		}
@@ -214,7 +214,7 @@ func GetNotebookIdByName(notebookName string) (string, error) {
 	return "", fmt.Errorf("notebook '%s' not found", notebookName)
 }
 
-func GetNotebookField(id string, field string) (string, error) {
+func getNotebookField(id string, field string) (string, error) {
 	url, err := buildJoplinURL("folders/"+id, "&fields=id,"+field)
 	if err != nil {
 		return "", err

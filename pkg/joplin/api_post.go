@@ -115,7 +115,7 @@ func PostResourceFromBody(input string, DirZet string) error {
 	for index, match := range matches {
 		if len(match) > 1 {
 			filename := match[1]
-			err := PostToJoplinWithIndex(filename, DirZet, index)
+			err := postToJoplinWithIndex(filename, DirZet, index)
 			if err != nil {
 				return fmt.Errorf("failed to post resource %s: %w", filename, err)
 			}
@@ -136,7 +136,7 @@ func noteToJSON(method string, filename string, DirZet string, notebookId string
 		return nil, err
 	}
 
-	content, err := ReplaceTimestampToIds(string(file))
+	content, err := replaceTimestampToIds(string(file))
 	if err != nil {
 		return nil, err
 	}
@@ -213,6 +213,6 @@ func getBytes(fileName string, b *bytes.Buffer, writer *multipart.Writer, DirZet
 	return nil
 }
 
-func PostToJoplinWithIndex(fileName string, DirZet string, index int) error {
+func postToJoplinWithIndex(fileName string, DirZet string, index int) error {
 	return postToJoplin(fileName, DirZet, "", index)
 }
