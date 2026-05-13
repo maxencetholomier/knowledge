@@ -3,7 +3,6 @@ package joplin
 import (
 	"encoding/json"
 	"fmt"
-	"kl/pkg/config"
 	"kl/pkg/httpclient"
 	"os"
 	"regexp"
@@ -57,18 +56,16 @@ func GetNotes(q NoteQuery) ([]Note, error) {
 		fieldsParam += ",deleted_time"
 	}
 
-	token, err := config.GetJoplinToken()
+	url, err := buildJoplinURL("notes", "&fields="+fieldsParam+"&limit=50")
 	if err != nil {
 		return nil, err
 	}
-
-	baseURL := "http://localhost:41184/notes?token=" + token + "&fields=" + fieldsParam + "&limit=50"
 	if q.OnlyDeleted {
-		baseURL += "&include_deleted=1"
+		url += "&include_deleted=1"
 	}
 
 	var notes []Note
-	err = fetchAllPages(baseURL, func(item map[string]interface{}) {
+	err = fetchAllPages(url, func(item map[string]interface{}) {
 		if q.OnlyDeleted {
 			deletedTime, _ := item["deleted_time"].(float64)
 			if deletedTime == 0 {
@@ -129,15 +126,13 @@ func GetTimestamps(idsType string) ([]string, error) {
 }
 
 func GetIds(idType string) ([]string, error) {
-	token, err := config.GetJoplinToken()
+	url, err := buildJoplinURL(idType, "&limit=50")
 	if err != nil {
 		return nil, err
 	}
 
-	baseURL := "http://localhost:41184/" + idType + "?token=" + token + "&limit=50"
-
 	var ids []string
-	err = fetchAllPages(baseURL, func(item map[string]interface{}) {
+	err = fetchAllPages(url, func(item map[string]interface{}) {
 		if id, ok := item["id"].(string); ok {
 			ids = append(ids, id)
 		}
@@ -169,12 +164,10 @@ func DownloadResourcesFromBody(input string, timestamp string, DirZet string) er
 }
 
 func downloadResource(id string, name string, index int, DirZet string) error {
-
-	token, err := config.GetJoplinToken()
+	url, err := buildJoplinURL("resources/"+id+"/file/", "")
 	if err != nil {
 		return err
 	}
-	url := "http://localhost:41184/resources/" + id + "/file/" + "?token=" + token
 
 	byte, err := httpGet(url)
 	if err != nil {
@@ -222,11 +215,10 @@ func GetNotebookIdByName(notebookName string) (string, error) {
 }
 
 func GetNotebookField(id string, field string) (string, error) {
-	token, err := config.GetJoplinToken()
+	url, err := buildJoplinURL("folders/"+id, "&fields=id,"+field)
 	if err != nil {
 		return "", err
 	}
-	url := "http://localhost:41184/folders/" + id + "?token=" + token + "&fields=id," + field
 
 	bodyAddr, err := httpGet(url)
 	if err != nil {

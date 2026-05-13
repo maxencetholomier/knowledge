@@ -1,7 +1,6 @@
 package joplin
 
 import (
-	"kl/pkg/config"
 	"kl/pkg/httpclient"
 	"time"
 )
@@ -14,12 +13,10 @@ func httpDelete(url string) error {
 
 func deleteFromJoplin(endpoint string, id string, queryParams string) error {
 	time.Sleep(200)
-	token, err := config.GetJoplinToken()
+	url, err := buildJoplinURL(endpoint+"/"+id, queryParams)
 	if err != nil {
 		return err
 	}
-	url := "http://localhost:41184/" + endpoint + "/" + id + "?token=" + token + queryParams
-
 	return httpDelete(url)
 }
 
