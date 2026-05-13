@@ -96,29 +96,6 @@ func GetNotes(q NoteQuery) ([]Note, error) {
 	return notes, err
 }
 
-func GetField(id string, field string) (string, error) {
-	value, _ := getField(id, field)
-	stringValue, ok := value.(string)
-	if !ok {
-		return "", fmt.Errorf("value for key " + "title" + "is not a string")
-	}
-	return stringValue, nil
-}
-
-func GetLastUpdate(id string) (time.Time, error) {
-	var t time.Time
-	value, _ := getField(id, "updated_time")
-
-	updatedTimeFloat, ok := value.(float64)
-	if !ok {
-		return t, fmt.Errorf("failed to parse updated_time as float64")
-	}
-
-	t = time.UnixMilli(int64(updatedTimeFloat))
-
-	return t, nil
-}
-
 func GetTimestamps(idsType string) ([]string, error) {
 	ids, err := GetIds(idsType)
 	if err != nil {
@@ -300,6 +277,3 @@ func GetNotebookField(id string, field string) (string, error) {
 	return stringValue, nil
 }
 
-func GetNoteParentId(noteId string) (string, error) {
-	return GetField(noteId, "parent_id")
-}

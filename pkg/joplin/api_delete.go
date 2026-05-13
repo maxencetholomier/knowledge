@@ -23,10 +23,6 @@ func deleteFromJoplin(endpoint string, id string, queryParams string) error {
 	return httpDelete(url)
 }
 
-func DeleteResourceFromJoplin(id string) error {
-	return deleteFromJoplin("resources", id, "")
-}
-
 func DeleteNoteFromJoplin(id string) error {
 	return deleteFromJoplin("notes", id, "&permanent=1")
 }
