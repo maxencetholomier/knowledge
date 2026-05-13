@@ -69,7 +69,7 @@ var joplinImportCmd = &cobra.Command{
 func downloadResources(notes []localNote) {
 	for _, note := range notes {
 		timestamp := strings.TrimSuffix(note.fileName, ".md")
-		if err := joplin.DownloadResourcesFromBody(note.body, timestamp, DirZet); err != nil {
+		if err := joplin.DownloadLinkedResources(note.body, timestamp, DirZet); err != nil {
 			if strings.Contains(err.Error(), "404") {
 				fmt.Printf("Warning: Some resources not found for %s\n", timestamp)
 			} else {

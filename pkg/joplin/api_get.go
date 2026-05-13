@@ -140,14 +140,14 @@ func getIds(idType string) ([]string, error) {
 	return ids, err
 }
 
-func DownloadResourcesFromBody(input string, timestamp string, DirZet string) error {
+func DownloadLinkedResources(note string, timestamp string, DirZet string) error {
 	pattern := `\[.*?\]\(:/([a-zA-Z0-9]{1,32})\)`
 	regex, err := regexp.Compile(pattern)
 	if err != nil {
 		return err
 	}
 
-	matches := regex.FindAllStringSubmatch(input, -1)
+	matches := regex.FindAllStringSubmatch(note, -1)
 	if len(matches) == 0 {
 		return nil
 	}
@@ -242,4 +242,3 @@ func getNotebookField(id string, field string) (string, error) {
 	}
 	return stringValue, nil
 }
-
