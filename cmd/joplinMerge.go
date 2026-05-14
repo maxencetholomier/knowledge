@@ -125,7 +125,7 @@ func getMergeActions(joplinNotes []joplin.Note, forceAction string) ([]mergeActi
 	var mergeActions []mergeAction
 
 	for _, note := range joplinNotes {
-		fileName := joplin.NoteIDToFilename(note.ID)
+		fileName := joplin.IdToFilename(note.ID)
 		if fileName == "" {
 			continue
 		}

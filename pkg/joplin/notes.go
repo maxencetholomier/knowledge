@@ -29,7 +29,7 @@ func replaceTimestampToIds(line string) (string, error) {
 
 	index := 0
 	result := re.ReplaceAllStringFunc(line, func(match string) string {
-		new_match := ":/" + FilenameToNoteID(match, index)
+		new_match := ":/" + FilenameToId(match, index)
 		index = index + 1
 		return new_match
 	})
@@ -45,7 +45,7 @@ func ReplaceIdsToLink(line string) string {
 		parts := reImage.FindStringSubmatch(match)
 		alt_name := parts[1]
 		id := parts[2]
-		new_match := NoteIDToFilename(id)
+		new_match := IdToFilename(id)
 		return "![" + alt_name + "](" + new_match + ")"
 	})
 
@@ -55,7 +55,7 @@ func ReplaceIdsToLink(line string) string {
 		parts := reLink.FindStringSubmatch(match)
 		alt_name := parts[1]
 		id := parts[2]
-		new_match := NoteIDToFilename(id)
+		new_match := IdToFilename(id)
 		return "[" + alt_name + "](" + new_match + ")"
 	})
 
@@ -84,7 +84,7 @@ func FilterLocalNotes(notes []Note) []LocalNote {
 		if !strings.HasSuffix(note.ID, "aaa") {
 			continue
 		}
-		filename := NoteIDToFilename(note.ID)
+		filename := IdToFilename(note.ID)
 		if filename == "" {
 			continue
 		}

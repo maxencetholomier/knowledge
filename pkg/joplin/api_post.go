@@ -65,7 +65,7 @@ func Send(query WriteQuery) error {
 
 	endpoint := "notes"
 	if query.Method == PUT {
-		endpoint = "notes/" + FilenameToNoteID(query.FileName, 0)
+		endpoint = "notes/" + FilenameToId(query.FileName, 0)
 	}
 
 	url, err := buildJoplinURL(endpoint, "")
@@ -140,7 +140,7 @@ func noteToJSON(method string, filename string, DirZet string, notebookId string
 	}
 
 	if method == "POST" {
-		data["id"] = FilenameToNoteID(filename, 0)
+		data["id"] = FilenameToId(filename, 0)
 	}
 
 	if notebookId != "" {
@@ -155,7 +155,7 @@ func noteToJSON(method string, filename string, DirZet string, notebookId string
 }
 
 func getBytes(fileName string, b *bytes.Buffer, writer *multipart.Writer, DirZet string, index int) error {
-	id := FilenameToNoteID(fileName, index)
+	id := FilenameToId(fileName, index)
 
 	filePath := DirZet + "/" + fileName
 	file, err := os.Open(filePath)

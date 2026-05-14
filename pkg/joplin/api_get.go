@@ -157,7 +157,7 @@ func downloadResource(id string, name string, index int, DirZet string) error {
 	}
 
 	if name == "" {
-		name = NoteIDToFilename(id)
+		name = IdToFilename(id)
 	}
 
 	err = os.WriteFile(DirZet+"/"+name+"_"+strconv.Itoa(index)+".png", byte, 0644)

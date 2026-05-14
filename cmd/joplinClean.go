@@ -32,7 +32,7 @@ var joplinCleanCmd = &cobra.Command{
 		var notesToDelete []joplin.Note
 
 		for _, joplinNote := range joplinNotes {
-			filename := joplin.NoteIDToFilename(joplinNote.ID)
+			filename := joplin.IdToFilename(joplinNote.ID)
 			if filename != "" {
 				noteTimestamp := strings.Split(filename, ".")[0]
 				if len(noteTimestamp) == 14 {
@@ -61,7 +61,7 @@ var joplinCleanCmd = &cobra.Command{
 
 		fmt.Printf("Found %d notes in Joplin that are not present locally:\n", len(notesToDelete))
 		for _, note := range notesToDelete {
-			filename := joplin.NoteIDToFilename(note.ID)
+			filename := joplin.IdToFilename(note.ID)
 			if filename != "" {
 				timestamp := strings.Split(filename, ".")[0]
 				if note.Title != "" {

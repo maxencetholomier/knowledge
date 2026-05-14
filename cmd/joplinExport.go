@@ -189,7 +189,7 @@ func exportNote(note localNoteToExport, notebookId string) (noteErr, resourceErr
 		return fmt.Errorf("failed to read note file: %w", err), nil
 	}
 
-	if err = joplin.SendResourceFromBody(string(content), DirZet); err != nil {
+	if err = joplin.PostResourceFromBody(string(content), DirZet); err != nil {
 		resourceErr = err
 	}
 
