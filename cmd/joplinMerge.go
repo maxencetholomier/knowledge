@@ -111,12 +111,8 @@ func applyMergeActions(mergeActions []mergeAction, notebookId string) {
 				fmt.Printf("Error posting resources for %s: %v\n", action.fileName, err)
 			}
 
-			if notebookId != "" {
-				err = joplin.PutNoteToJoplinWithNotebook(action.fileName, DirZet, notebookId)
-			} else {
-				err = joplin.PutNoteToJoplin(action.fileName, DirZet)
-			}
-			if err != nil {
+			query := joplin.WriteQuery{Method: joplin.PUT, FileName: action.fileName, DirZet: DirZet, NotebookId: notebookId}
+			if err = joplin.Send(query); err != nil {
 				fmt.Printf("Error pushing %s: %v\n", action.fileName, err)
 				continue
 			}

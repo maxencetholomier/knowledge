@@ -16,6 +16,21 @@ import (
 	"time"
 )
 
+type Method string
+
+const (
+	POST Method = "POST"
+	PUT  Method = "PUT"
+)
+
+type WriteQuery struct {
+	Method     Method
+	FileName   string
+	DirZet     string
+	NotebookId string
+	Index      int
+}
+
 func isImageResource(fileName string) bool {
 	extension := files.GetFileType(fileName)
 	return utils.ItemInSlice([]string{"png", "jpg", "svg"}, extension)
@@ -29,15 +44,14 @@ func buildJoplinURL(endpoint string, queryParams string) (string, error) {
 	return "http://localhost:41184/" + endpoint + "?token=" + token + queryParams, nil
 }
 
-func postToJoplin(fileName string, DirZet string, notebookId string, index int) error {
+func Send(q WriteQuery) error {
 	time.Sleep(200)
 
-	if isImageResource(fileName) {
+	if isImageResource(q.FileName) {
 		var b bytes.Buffer
 		writer := multipart.NewWriter(&b)
 
-		err := getBytes(fileName, &b, writer, DirZet, index)
-		if err != nil {
+		if err := getBytes(q.FileName, &b, writer, q.DirZet, q.Index); err != nil {
 			return err
 		}
 
@@ -46,56 +60,29 @@ func postToJoplin(fileName string, DirZet string, notebookId string, index int) 
 			return err
 		}
 
-		return httpSend("POST", url, b, writer.FormDataContentType(), fmt.Sprintf("resource %s", fileName))
+		return httpSend("POST", url, b, writer.FormDataContentType(), fmt.Sprintf("resource %s", q.FileName))
 	}
 
-	url, err := buildJoplinURL("notes", "")
+	endpoint := "notes"
+	if q.Method == PUT {
+		endpoint = "notes/" + FilenameToNoteID(q.FileName, 0)
+	}
+
+	url, err := buildJoplinURL(endpoint, "")
 	if err != nil {
 		return err
 	}
 
-	jsonData, err := noteToJSON("POST", fileName, DirZet, notebookId)
-	if err != nil {
-		return err
-	}
-
-	b := bytes.NewBuffer(jsonData)
-	return httpSend("POST", url, *b, "application/json", fmt.Sprintf("note %s", fileName))
-}
-
-func PostToJoplin(fileName string, DirZet string, notebookId string) error {
-	return postToJoplin(fileName, DirZet, notebookId, 0)
-}
-
-func putNoteToJoplin(fileName string, DirZet string, notebookId string) error {
-	time.Sleep(200)
-
-	id := FilenameToNoteID(fileName, 0)
-
-	url, err := buildJoplinURL("notes/"+id, "")
-	if err != nil {
-		return err
-	}
-
-	jsonData, err := noteToJSON("PUT", fileName, DirZet, notebookId)
+	jsonData, err := noteToJSON(string(q.Method), q.FileName, q.DirZet, q.NotebookId)
 	if err != nil {
 		return err
 	}
 
 	b := bytes.NewBuffer(jsonData)
-	return httpSend("PUT", url, *b, "application/json", fmt.Sprintf("note %s", fileName))
-}
-
-func PutNoteToJoplin(fileName string, DirZet string) error {
-	return putNoteToJoplin(fileName, DirZet, "")
-}
-
-func PutNoteToJoplinWithNotebook(fileName string, DirZet string, notebookId string) error {
-	return putNoteToJoplin(fileName, DirZet, notebookId)
+	return httpSend(string(q.Method), url, *b, "application/json", fmt.Sprintf("note %s", q.FileName))
 }
 
 func PostResourceFromBody(input string, DirZet string) error {
-	time.Sleep(200)
 	pattern := `\[.*?\]\(([0-9]{14}(?:_[0-9]+)?\.(?:jpg|png|svg))\)`
 
 	regex, err := regexp.Compile(pattern)
@@ -110,10 +97,9 @@ func PostResourceFromBody(input string, DirZet string) error {
 
 	for index, match := range matches {
 		if len(match) > 1 {
-			filename := match[1]
-			err := postToJoplinWithIndex(filename, DirZet, index)
+			err := Send(WriteQuery{Method: POST, FileName: match[1], DirZet: DirZet, Index: index})
 			if err != nil {
-				return fmt.Errorf("failed to post resource %s: %w", filename, err)
+				return fmt.Errorf("failed to post resource %s: %w", match[1], err)
 			}
 		}
 	}
@@ -196,19 +182,9 @@ func getBytes(fileName string, b *bytes.Buffer, writer *multipart.Writer, DirZet
 	if err != nil {
 		return err
 	}
-	err = writer.WriteField("props", string(jsonData))
-	if err != nil {
+	if err = writer.WriteField("props", string(jsonData)); err != nil {
 		return err
 	}
 
-	err = writer.Close()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func postToJoplinWithIndex(fileName string, DirZet string, index int) error {
-	return postToJoplin(fileName, DirZet, "", index)
+	return writer.Close()
 }

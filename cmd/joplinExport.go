@@ -193,7 +193,8 @@ func exportNote(note localNoteToExport, notebookId string) (noteErr, resourceErr
 		resourceErr = err
 	}
 
-	if err = joplin.PostToJoplin(note.timestamp+".md", DirZet, notebookId); err != nil {
+	query := joplin.WriteQuery{Method: joplin.POST, FileName: note.timestamp + ".md", DirZet: DirZet, NotebookId: notebookId}
+	if err = joplin.Send(query); err != nil {
 		noteErr = err
 	}
 
