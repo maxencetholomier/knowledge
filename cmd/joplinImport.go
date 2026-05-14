@@ -33,13 +33,13 @@ var joplinImportCmd = &cobra.Command{
 			return err
 		}
 
-		query := joplin.NoteQuery{Fields: []string{"title", "body", "parent_id"}}
+		query := joplin.NoteQuery{Fields: []string{"title", "body"}, NotebookID: notebookId}
 		joplinNotes, err := joplin.GetNotes(query)
 		if err != nil {
 			return err
 		}
 
-		notesToImport := collectNotesToImport(joplinNotes, notebookId)
+		notesToImport := collectNotesToImport(joplinNotes)
 
 		confirmed, err := confirmImport(notesToImport, notebookName)
 		if err != nil {
@@ -127,18 +127,10 @@ func confirmImport(notesToImport []localNote, notebookName string) (bool, error)
 	return true, nil
 }
 
-func isNoteInNotebook(note joplin.Note, notebookId string) bool {
-	return notebookId == "" || note.ParentID == notebookId
-}
-
-func collectNotesToImport(notes []joplin.Note, notebookId string) []localNote {
+func collectNotesToImport(notes []joplin.Note) []localNote {
 	var notesToImport []localNote
 
 	for _, note := range notes {
-		if !isNoteInNotebook(note, notebookId) {
-			continue
-		}
-
 		fileName := joplin.DecryptFilename(note.ID)
 		if fileName == "" {
 			fileName = utils.CreateTimestamp() + ".md"

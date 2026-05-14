@@ -34,7 +34,7 @@ var joplinExportCmd = &cobra.Command{
 			return err
 		}
 
-		notes, err := collectNotesToExport()
+		notes, err := collectNotesToExport(notebookId)
 		if err != nil {
 			return err
 		}
@@ -138,7 +138,7 @@ func confirmExport(notes []localNoteToExport, notebookName string) (bool, error)
 	return true, nil
 }
 
-func collectNotesToExport() ([]localNoteToExport, error) {
+func collectNotesToExport(notebookId string) ([]localNoteToExport, error) {
 	scanner := files.NewScanner(DirZet).WithExtensions("md")
 	fileList, err := scanner.ListFiles()
 	if err != nil {
@@ -147,7 +147,7 @@ func collectNotesToExport() ([]localNoteToExport, error) {
 
 	fileTimestamps := files.GetTimestamps(fileList)
 
-	joplinTimestamps, err := joplin.GetTimestamps("notes")
+	joplinTimestamps, err := joplin.GetTimestamps("notes", notebookId)
 	if err != nil {
 		return nil, err
 	}

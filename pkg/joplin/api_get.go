@@ -47,6 +47,7 @@ func fetchAllPages(baseURL string, process func(map[string]interface{})) error {
 
 type NoteQuery struct {
 	Fields      []string
+	NotebookID  string
 	OnlyDeleted bool
 }
 
@@ -56,7 +57,12 @@ func GetNotes(q NoteQuery) ([]Note, error) {
 		fieldsParam += ",deleted_time"
 	}
 
-	url, err := buildJoplinURL("notes", "&fields="+fieldsParam+"&limit=50")
+	resource := "notes"
+	if q.NotebookID != "" {
+		resource = "folders/" + q.NotebookID + "/notes"
+	}
+
+	url, err := buildJoplinURL(resource, "&fields="+fieldsParam+"&limit=50")
 	if err != nil {
 		return nil, err
 	}
@@ -93,8 +99,12 @@ func GetNotes(q NoteQuery) ([]Note, error) {
 	return notes, err
 }
 
-func GetTimestamps(idsType string) ([]string, error) {
-	ids, err := getIds(idsType)
+func GetTimestamps(idsType string, notebookId string) ([]string, error) {
+	path := idsType
+	if idsType == "notes" && notebookId != "" {
+		path = "folders/" + notebookId + "/notes"
+	}
+	ids, err := getIds(path)
 	if err != nil {
 		return nil, err
 	}
