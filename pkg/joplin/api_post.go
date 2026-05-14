@@ -44,14 +44,14 @@ func buildJoplinURL(endpoint string, queryParams string) (string, error) {
 	return "http://localhost:41184/" + endpoint + "?token=" + token + queryParams, nil
 }
 
-func Send(q WriteQuery) error {
+func Send(query WriteQuery) error {
 	time.Sleep(200)
 
-	if isImageResource(q.FileName) {
+	if isImageResource(query.FileName) {
 		var b bytes.Buffer
 		writer := multipart.NewWriter(&b)
 
-		if err := getBytes(q.FileName, &b, writer, q.DirZet, q.Index); err != nil {
+		if err := getBytes(query.FileName, &b, writer, query.DirZet, query.Index); err != nil {
 			return err
 		}
 
@@ -60,12 +60,12 @@ func Send(q WriteQuery) error {
 			return err
 		}
 
-		return httpSend("POST", url, b, writer.FormDataContentType(), fmt.Sprintf("resource %s", q.FileName))
+		return httpSend("POST", url, b, writer.FormDataContentType(), fmt.Sprintf("resource %s", query.FileName))
 	}
 
 	endpoint := "notes"
-	if q.Method == PUT {
-		endpoint = "notes/" + FilenameToNoteID(q.FileName, 0)
+	if query.Method == PUT {
+		endpoint = "notes/" + FilenameToNoteID(query.FileName, 0)
 	}
 
 	url, err := buildJoplinURL(endpoint, "")
@@ -73,13 +73,13 @@ func Send(q WriteQuery) error {
 		return err
 	}
 
-	jsonData, err := noteToJSON(string(q.Method), q.FileName, q.DirZet, q.NotebookId)
+	jsonData, err := noteToJSON(string(query.Method), query.FileName, query.DirZet, query.NotebookId)
 	if err != nil {
 		return err
 	}
 
 	b := bytes.NewBuffer(jsonData)
-	return httpSend(string(q.Method), url, *b, "application/json", fmt.Sprintf("note %s", q.FileName))
+	return httpSend(string(query.Method), url, *b, "application/json", fmt.Sprintf("note %s", query.FileName))
 }
 
 func PostResourceFromBody(input string, DirZet string) error {
