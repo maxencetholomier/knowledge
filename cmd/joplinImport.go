@@ -131,7 +131,7 @@ func collectNotesToImport(notes []joplin.Note) []localNote {
 	var notesToImport []localNote
 
 	for _, note := range notes {
-		fileName := joplin.DecryptFilename(note.ID)
+		fileName := joplin.NoteIDToFilename(note.ID)
 		if fileName == "" {
 			fileName = utils.CreateTimestamp() + ".md"
 		}
@@ -165,7 +165,7 @@ func collectLocalNotesInJoplinTrash() ([]localNote, error) {
 
 	var result []localNote
 	for _, note := range trashed {
-		fileName := joplin.DecryptFilename(note.ID)
+		fileName := joplin.NoteIDToFilename(note.ID)
 		if fileName == "" {
 			continue
 		}

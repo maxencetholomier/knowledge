@@ -99,43 +99,15 @@ func GetNotes(q NoteQuery) ([]Note, error) {
 	return notes, err
 }
 
-func GetTimestamps(idsType string, notebookId string) ([]string, error) {
-	path := idsType
-	if idsType == "notes" && notebookId != "" {
-		path = "folders/" + notebookId + "/notes"
+func GetNoteIDs(query NoteQuery) ([]string, error) {
+	resource := "notes"
+	if query.NotebookID != "" {
+		resource = "folders/" + query.NotebookID + "/notes"
 	}
-	ids, err := getIds(path)
-	if err != nil {
-		return nil, err
-	}
-
-	var timestamps []string
-
-	if idsType == "resources" {
-		for _, id := range ids {
-			timestamp := strings.Split(DecryptFilename(id), ".")[0]
-			if timestamp != "" {
-				timestamps = append(timestamps, timestamp)
-			}
-		}
-	} else {
-		ids = filterIdsByExtension(ids, "aaa")
-
-		for _, id := range ids {
-			filename := DecryptFilename(id)
-			if filename != "" {
-				timestamp := strings.Split(filename, ".")[0]
-				if len(timestamp) == 14 {
-					timestamps = append(timestamps, timestamp)
-				}
-			}
-		}
-	}
-
-	return timestamps, nil
+	return getRawIds(resource)
 }
 
-func getIds(idType string) ([]string, error) {
+func getRawIds(idType string) ([]string, error) {
 	url, err := buildJoplinURL(idType, "&limit=50")
 	if err != nil {
 		return nil, err
@@ -185,7 +157,7 @@ func downloadResource(id string, name string, index int, DirZet string) error {
 	}
 
 	if name == "" {
-		name = DecryptFilename(id)
+		name = NoteIDToFilename(id)
 	}
 
 	err = os.WriteFile(DirZet+"/"+name+"_"+strconv.Itoa(index)+".png", byte, 0644)
@@ -206,7 +178,7 @@ func getNotebookIdByName(notebookName string) (string, error) {
 		return "", nil
 	}
 
-	ids, err := getIds("folders")
+	ids, err := getRawIds("folders")
 	if err != nil {
 		return "", err
 	}

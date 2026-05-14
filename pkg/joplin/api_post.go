@@ -74,7 +74,7 @@ func PostToJoplinWithNotebook(fileName string, DirZet string, notebookId string)
 func putNoteToJoplin(fileName string, DirZet string, notebookId string) error {
 	time.Sleep(200)
 
-	id := EncryptFilename(fileName, 0)
+	id := FilenameToNoteID(fileName, 0)
 
 	url, err := buildJoplinURL("notes/"+id, "")
 	if err != nil {
@@ -158,7 +158,7 @@ func noteToJSON(method string, filename string, DirZet string, notebookId string
 	}
 
 	if method == "POST" {
-		data["id"] = EncryptFilename(filename, 0)
+		data["id"] = FilenameToNoteID(filename, 0)
 	}
 
 	if notebookId != "" {
@@ -173,7 +173,7 @@ func noteToJSON(method string, filename string, DirZet string, notebookId string
 }
 
 func getBytes(fileName string, b *bytes.Buffer, writer *multipart.Writer, DirZet string, index int) error {
-	id := EncryptFilename(fileName, index)
+	id := FilenameToNoteID(fileName, index)
 
 	filePath := DirZet + "/" + fileName
 	file, err := os.Open(filePath)

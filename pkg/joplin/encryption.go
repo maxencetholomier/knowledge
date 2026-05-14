@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-func EncryptFilename(filename string, index int) string {
+func FilenameToNoteID(filename string, index int) string {
 	ext := strings.ToLower(files.GetFileType(filename))
 	timestamp := filename[:14]
 
@@ -32,12 +32,12 @@ func EncryptFilename(filename string, index int) string {
 	}
 }
 
-func DecryptFilename(encrypted string) string {
-	if len(encrypted) != 32 {
+func NoteIDToFilename(noteID string) string {
+	if len(noteID) != 32 {
 		return ""
 	}
 
-	suffix := encrypted[29:32]
+	suffix := noteID[29:32]
 	extMap := map[string]string{
 		"aaa": "md",
 		"bbb": "png",
@@ -51,11 +51,11 @@ func DecryptFilename(encrypted string) string {
 	}
 
 	if ext == "md" {
-		timestamp := encrypted[15:29]
+		timestamp := noteID[15:29]
 		return timestamp + "." + ext
 	} else {
-		timestamp := encrypted[15:29]
-		index := strings.TrimLeft(encrypted[11:15], "0")
+		timestamp := noteID[15:29]
+		index := strings.TrimLeft(noteID[11:15], "0")
 		if index == "" {
 			index = "0"
 		}

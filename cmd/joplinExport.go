@@ -7,6 +7,7 @@ import (
 	"kl/pkg/prompt"
 	"kl/pkg/utils"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -147,7 +148,7 @@ func collectNotesToExport(notebookId string) ([]localNoteToExport, error) {
 
 	fileTimestamps := files.GetTimestamps(fileList)
 
-	joplinTimestamps, err := joplin.GetTimestamps("notes", notebookId)
+	joplinTimestamps, err := getAlreadyExportedTimestamps(notebookId)
 	if err != nil {
 		return nil, err
 	}
@@ -167,6 +168,35 @@ func collectNotesToExport(notebookId string) ([]localNoteToExport, error) {
 		result = append(result, note)
 	}
 	return result, nil
+}
+
+func getAlreadyExportedTimestamps(notebookId string) ([]string, error) {
+	ids, err := joplin.GetNoteIDs(joplin.NoteQuery{NotebookID: notebookId})
+	if err != nil {
+		return nil, err
+	}
+
+	var timestamps []string
+	for _, id := range filterAlreadyExportedIds(ids) {
+		filename := joplin.NoteIDToFilename(id)
+		if filename != "" {
+			timestamp := strings.Split(filename, ".")[0]
+			if len(timestamp) == 14 {
+				timestamps = append(timestamps, timestamp)
+			}
+		}
+	}
+	return timestamps, nil
+}
+
+func filterAlreadyExportedIds(ids []string) []string {
+	var result []string
+	for _, id := range ids {
+		if strings.HasSuffix(id, "aaa") {
+			result = append(result, id)
+		}
+	}
+	return result
 }
 
 func init() {
