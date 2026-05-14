@@ -34,6 +34,30 @@ func Create(filePath, fileContent string) (*os.File, error) {
 	return file, nil
 }
 
+func GetLastUpdates(DirZet string) (map[string]time.Time, error) {
+	out, err := exec.Command("git", "-C", DirZet, "log", "--format=COMMIT %ad", "--date=unix", "--name-only", "--relative").Output()
+	if err != nil {
+		return nil, err
+	}
+
+	result := make(map[string]time.Time)
+	var current time.Time
+
+	for _, line := range strings.Split(string(out), "\n") {
+		if strings.HasPrefix(line, "COMMIT ") {
+			var unix int64
+			fmt.Sscanf(line[7:], "%d", &unix)
+			current = time.Unix(unix, 0)
+		} else if line != "" {
+			if _, seen := result[line]; !seen {
+				result[line] = current
+			}
+		}
+	}
+
+	return result, nil
+}
+
 func GetLastUpdate(fileName string, DirZet string) (time.Time, error) {
 	cmd := exec.Command("git", "-C", DirZet, "log", "-1", "--format=%ad", "--date=unix", fileName)
 	var last_update time.Time

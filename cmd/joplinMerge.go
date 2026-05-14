@@ -30,9 +30,9 @@ type mergeAction struct {
 var joplinMergeCmd = &cobra.Command{
 	Use:   "merge",
 	Short: "Merge notes with Joplin bidirectionally",
-	Long: `Synchronize notes between the knowledge base and Joplin by merging changes bidirectionally based on modification timestamps.
+	Long: `Synchronize notes between the knowledge base and Joplin by merging changes bidirectionally based on modification fileTimestamps.
 
-IMPORTANT: The merge process uses modification timestamps to determine which version is newer.
+IMPORTANT: The merge process uses modification fileTimestamps to determine which version is newer.
 The newest version will be preserved and the older version will be overwritten.
 If you have modified the same note both locally and in the cloud, there is no conflict resolution -
 data loss may occur as the older version will be replaced by the newer one.`,
@@ -119,18 +119,27 @@ func applyMergeActions(mergeActions []mergeAction, notebookId string) {
 }
 
 func getMergeActions(joplinNotes []joplin.Note, forceAction string) ([]mergeAction, error) {
-	var mergeActions []mergeAction
+	fileTimestamps, err := files.GetLastUpdates(DirZet)
+	if err != nil {
+		return nil, err
+	}
 
+	var mergeActions []mergeAction
 	for _, note := range joplinNotes {
 		fileName := joplin.IdToFilename(note.ID)
 		if fileName == "" {
 			continue
 		}
 
-		file_last_update, localErr := files.GetLastUpdate(fileName, DirZet)
-		joplin_last_update := note.UpdatedTime
-		joplinErr := error(nil)
-		if joplin_last_update.IsZero() {
+		fileLastUpdate, inGit := fileTimestamps[fileName]
+		var localErr error
+		if !inGit {
+			localErr = fmt.Errorf("no git history for %s", fileName)
+		}
+
+		joplinLastUpdate := note.UpdatedTime
+		var joplinErr error
+		if joplinLastUpdate.IsZero() {
 			joplinErr = fmt.Errorf("no updated_time for note %s", note.ID)
 		}
 
@@ -139,14 +148,13 @@ func getMergeActions(joplinNotes []joplin.Note, forceAction string) ([]mergeActi
 		}
 
 		fileContent, readErr := os.ReadFile(DirZet + "/" + fileName)
-
 		joplinAsLocal := strings.TrimSpace("# " + note.Title + "\n\n" + joplin.StripLeadingHeading(joplin.ReplaceIdsToLink(note.Body)))
 
 		action := mergeAction{
 			fileName:     fileName,
 			joplinTitle:  note.Title,
-			fileUpdate:   file_last_update,
-			joplinUpdate: joplin_last_update,
+			fileUpdate:   fileLastUpdate,
+			joplinUpdate: joplinLastUpdate,
 			joplinBody:   note.Body,
 		}
 
@@ -168,9 +176,9 @@ func getMergeActions(joplinNotes []joplin.Note, forceAction string) ([]mergeActi
 		} else {
 			if action.fileContent == joplinAsLocal {
 				action.action = "no_change"
-			} else if file_last_update.Before(joplin_last_update) {
+			} else if fileLastUpdate.Before(joplinLastUpdate) {
 				action.action = "pull_from_joplin"
-			} else if joplin_last_update.Before(file_last_update) {
+			} else if joplinLastUpdate.Before(fileLastUpdate) {
 				action.action = "push_to_joplin"
 			} else {
 				action.action = "pull_from_joplin"
@@ -282,7 +290,7 @@ func showDiff(localContent, joplinAsLocal string, maxLines int) {
 func init() {
 	joplinMergeCmd.Flags().StringVarP(&joplinMergeNotebook, "notebook", "n", "", "specify the notebook to move local notes to when pushing to Joplin")
 	joplinMergeCmd.Flags().BoolVar(&joplinMergeShowDiff, "diff", false, "show diff of changes for each file")
-	joplinMergeCmd.Flags().BoolVar(&joplinMergeForceLocal, "force-local", false, "push all notes from local to Joplin, ignoring timestamps")
-	joplinMergeCmd.Flags().BoolVar(&joplinMergeForceJoplin, "force-joplin", false, "pull all notes from Joplin to local, ignoring timestamps")
+	joplinMergeCmd.Flags().BoolVar(&joplinMergeForceLocal, "force-local", false, "push all notes from local to Joplin, ignoring fileTimestamps")
+	joplinMergeCmd.Flags().BoolVar(&joplinMergeForceJoplin, "force-joplin", false, "pull all notes from Joplin to local, ignoring fileTimestamps")
 	joplinCmd.AddCommand(joplinMergeCmd)
 }

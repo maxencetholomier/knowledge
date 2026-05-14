@@ -13,7 +13,6 @@ import (
 	"os"
 	"regexp"
 	"strings"
-	"time"
 )
 
 type Method string
@@ -45,7 +44,6 @@ func buildJoplinURL(endpoint string, queryParams string) (string, error) {
 }
 
 func Send(query WriteQuery) error {
-	time.Sleep(200)
 
 	if isImageResource(query.FileName) {
 		var b bytes.Buffer
