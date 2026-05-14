@@ -63,11 +63,7 @@ func postToJoplin(fileName string, DirZet string, notebookId string, index int) 
 	return httpSend("POST", url, *b, "application/json", fmt.Sprintf("note %s", fileName))
 }
 
-func PostToJoplin(fileName string, DirZet string) error {
-	return postToJoplin(fileName, DirZet, "", 0)
-}
-
-func PostToJoplinWithNotebook(fileName string, DirZet string, notebookId string) error {
+func PostToJoplin(fileName string, DirZet string, notebookId string) error {
 	return postToJoplin(fileName, DirZet, notebookId, 0)
 }
 
