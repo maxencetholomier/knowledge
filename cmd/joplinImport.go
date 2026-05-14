@@ -33,7 +33,7 @@ var joplinImportCmd = &cobra.Command{
 			return err
 		}
 
-		query := joplin.NoteQuery{Fields: []string{"title", "body"}, NotebookID: notebookId}
+		query := joplin.GetQuery{Fields: []string{"title", "body"}, NotebookID: notebookId}
 		joplinNotes, err := joplin.GetNotes(query)
 		if err != nil {
 			return err
@@ -157,7 +157,7 @@ func collectNotesToImport(notes []joplin.Note) []localNote {
 }
 
 func collectLocalNotesInJoplinTrash() ([]localNote, error) {
-	query := joplin.NoteQuery{Fields: []string{"title"}, OnlyDeleted: true}
+	query := joplin.GetQuery{Fields: []string{"title"}, OnlyDeleted: true}
 	trashed, err := joplin.GetNotes(query)
 	if err != nil {
 		return nil, err

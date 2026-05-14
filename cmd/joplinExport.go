@@ -165,7 +165,7 @@ func noteToExport(timestamp string) localNoteToExport {
 }
 
 func getAlreadyExportedTimestamps(notebookId string) ([]string, error) {
-	ids, err := joplin.GetNoteIDs(joplin.NoteQuery{NotebookID: notebookId})
+	ids, err := joplin.GetNoteIDs(joplin.GetQuery{NotebookID: notebookId})
 	if err != nil {
 		return nil, err
 	}
@@ -189,7 +189,7 @@ func exportNote(note localNoteToExport, notebookId string) (noteErr, resourceErr
 		return fmt.Errorf("failed to read note file: %w", err), nil
 	}
 
-	if err = joplin.PostResourceFromBody(string(content), DirZet); err != nil {
+	if err = joplin.SendResourceFromBody(string(content), DirZet); err != nil {
 		resourceErr = err
 	}
 

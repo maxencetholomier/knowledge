@@ -45,13 +45,13 @@ func fetchAllPages(baseURL string, process func(map[string]interface{})) error {
 	return nil
 }
 
-type NoteQuery struct {
+type GetQuery struct {
 	Fields      []string
 	NotebookID  string
 	OnlyDeleted bool
 }
 
-func GetNotes(q NoteQuery) ([]Note, error) {
+func GetNotes(q GetQuery) ([]Note, error) {
 	fieldsParam := "id," + strings.Join(q.Fields, ",")
 	if q.OnlyDeleted {
 		fieldsParam += ",deleted_time"
@@ -99,7 +99,7 @@ func GetNotes(q NoteQuery) ([]Note, error) {
 	return notes, err
 }
 
-func GetNoteIDs(query NoteQuery) ([]string, error) {
+func GetNoteIDs(query GetQuery) ([]string, error) {
 	resource := "notes"
 	if query.NotebookID != "" {
 		resource = "folders/" + query.NotebookID + "/notes"

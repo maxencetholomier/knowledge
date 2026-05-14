@@ -82,7 +82,7 @@ func Send(query WriteQuery) error {
 	return httpSend(string(query.Method), url, *b, "application/json", fmt.Sprintf("note %s", query.FileName))
 }
 
-func PostResourceFromBody(input string, DirZet string) error {
+func SendResourceFromBody(input string, DirZet string) error {
 	pattern := `\[.*?\]\(([0-9]{14}(?:_[0-9]+)?\.(?:jpg|png|svg))\)`
 
 	regex, err := regexp.Compile(pattern)

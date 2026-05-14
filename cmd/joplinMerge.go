@@ -18,14 +18,13 @@ var joplinMergeForceLocal bool
 var joplinMergeForceJoplin bool
 
 type mergeAction struct {
-	fileName             string
-	title                string
-	action               string // "pull_from_joplin", "push_to_joplin", "no_change"
-	localUpdate          time.Time
-	joplinUpdate         time.Time
-	joplinBody           string
-	normalizedJoplinBody string
-	localBody            string
+	action       string // "pull_from_joplin", "push_to_joplin", "no_change"
+	fileContent  string
+	fileName     string
+	fileUpdate   time.Time
+	joplinBody   string
+	joplinTitle  string
+	joplinUpdate time.Time
 }
 
 var joplinMergeCmd = &cobra.Command{
@@ -43,22 +42,22 @@ data loss may occur as the older version will be replaced by the newer one.`,
 			return fmt.Errorf("--force-local and --force-joplin are mutually exclusive")
 		}
 
-		notebookName, notebookId, err := joplin.GetNotebookInfo(joplinMergeNotebook)
-		if err != nil {
-			return err
-		}
-
-		query := joplin.NoteQuery{Fields: []string{"title", "body", "updated_time"}}
-		joplinNotes, err := joplin.GetNotes(query)
-		if err != nil {
-			return err
-		}
-
 		forceAction := ""
 		if joplinMergeForceLocal {
 			forceAction = "push_to_joplin"
 		} else if joplinMergeForceJoplin {
 			forceAction = "pull_from_joplin"
+		}
+
+		notebookName, notebookId, err := joplin.GetNotebookInfo(joplinMergeNotebook)
+		if err != nil {
+			return err
+		}
+
+		query := joplin.GetQuery{Fields: []string{"title", "body", "updated_time"}, NotebookID: notebookId}
+		joplinNotes, err := joplin.GetNotes(query)
+		if err != nil {
+			return err
 		}
 
 		mergeActions, err := getMergeActions(joplinNotes, forceAction)
@@ -89,8 +88,8 @@ func applyMergeActions(mergeActions []mergeAction, notebookId string) {
 
 	for _, action := range mergeActions {
 		if action.action == "pull_from_joplin" {
-			cleanBody := "# " + action.title + "\n\n" + joplin.StripLeadingHeading(action.joplinBody)
-			file, err := files.Create(DirZet+"/"+action.fileName, joplin.ReplaceIdsToLink(cleanBody))
+			fileContent := "# " + action.joplinTitle + "\n\n" + joplin.StripLeadingHeading(action.joplinBody)
+			file, err := files.Create(DirZet+"/"+action.fileName, joplin.ReplaceIdsToLink(fileContent))
 			if err != nil {
 				fmt.Printf("Error pulling %s: %v\n", action.fileName, err)
 				continue
@@ -98,15 +97,13 @@ func applyMergeActions(mergeActions []mergeAction, notebookId string) {
 			defer file.Close()
 
 		} else if action.action == "push_to_joplin" {
-			zetBody, err := os.ReadFile(DirZet + "/" + action.fileName)
+			body, err := os.ReadFile(DirZet + "/" + action.fileName)
 			if err != nil {
 				fmt.Printf("Error reading %s: %v\n", action.fileName, err)
 				continue
 			}
 
-			body := string(zetBody)
-
-			err = joplin.PostResourceFromBody(body, DirZet)
+			err = joplin.SendResourceFromBody(string(body), DirZet)
 			if err != nil {
 				fmt.Printf("Error posting resources for %s: %v\n", action.fileName, err)
 			}
@@ -130,35 +127,31 @@ func getMergeActions(joplinNotes []joplin.Note, forceAction string) ([]mergeActi
 			continue
 		}
 
-		zet_last_update, localErr := files.GetLastUpdate(fileName, DirZet)
+		file_last_update, localErr := files.GetLastUpdate(fileName, DirZet)
 		joplin_last_update := note.UpdatedTime
 		joplinErr := error(nil)
 		if joplin_last_update.IsZero() {
 			joplinErr = fmt.Errorf("no updated_time for note %s", note.ID)
 		}
 
-		body := note.Body
-		title := note.Title
-
 		if localErr != nil && joplinErr != nil {
 			continue
 		}
 
-		localContent, readErr := os.ReadFile(DirZet + "/" + fileName)
+		fileContent, readErr := os.ReadFile(DirZet + "/" + fileName)
 
-		normalizedJoplinContent := strings.TrimSpace("# " + title + "\n\n" + joplin.StripLeadingHeading(joplin.ReplaceIdsToLink(body)))
+		joplinAsLocal := strings.TrimSpace("# " + note.Title + "\n\n" + joplin.StripLeadingHeading(joplin.ReplaceIdsToLink(note.Body)))
 
 		action := mergeAction{
-			fileName:             fileName,
-			title:                title,
-			localUpdate:          zet_last_update,
-			joplinUpdate:         joplin_last_update,
-			joplinBody:           body,
-			normalizedJoplinBody: normalizedJoplinContent,
+			fileName:     fileName,
+			joplinTitle:  note.Title,
+			fileUpdate:   file_last_update,
+			joplinUpdate: joplin_last_update,
+			joplinBody:   note.Body,
 		}
 
 		if readErr == nil {
-			action.localBody = strings.TrimSpace(string(localContent))
+			action.fileContent = strings.TrimSpace(string(fileContent))
 		}
 
 		if forceAction != "" {
@@ -173,11 +166,11 @@ func getMergeActions(joplinNotes []joplin.Note, forceAction string) ([]mergeActi
 		} else if readErr != nil {
 			action.action = "pull_from_joplin"
 		} else {
-			if action.localBody == normalizedJoplinContent {
+			if action.fileContent == joplinAsLocal {
 				action.action = "no_change"
-			} else if zet_last_update.Before(joplin_last_update) {
+			} else if file_last_update.Before(joplin_last_update) {
 				action.action = "pull_from_joplin"
-			} else if joplin_last_update.Before(zet_last_update) {
+			} else if joplin_last_update.Before(file_last_update) {
 				action.action = "push_to_joplin"
 			} else {
 				action.action = "pull_from_joplin"
@@ -192,6 +185,31 @@ func getMergeActions(joplinNotes []joplin.Note, forceAction string) ([]mergeActi
 	return mergeActions, nil
 }
 
+func printMergeAction(action mergeAction) {
+	joplinAsLocal := strings.TrimSpace("# " + action.joplinTitle + "\n\n" + joplin.StripLeadingHeading(joplin.ReplaceIdsToLink(action.joplinBody)))
+
+	var arrow, direction string
+	var updateTime time.Time
+	var diffFrom, diffTo string
+
+	if action.action == "pull_from_joplin" {
+		arrow, direction = "←", "pull from Joplin"
+		updateTime = action.joplinUpdate
+		diffFrom, diffTo = action.fileContent, joplinAsLocal
+	} else if action.action == "push_to_joplin" {
+		arrow, direction = "→", "push to Joplin"
+		updateTime = action.fileUpdate
+		diffFrom, diffTo = joplinAsLocal, action.fileContent
+	}
+
+	fmt.Printf("  %s %s - %s (%s, updated %s)\n",
+		arrow, action.fileName[:14], action.joplinTitle, direction, updateTime.Format("2006-01-02 15:04"))
+	if joplinMergeShowDiff && action.fileContent != "" {
+		fmt.Printf("    Changes:\n")
+		showDiff(diffFrom, diffTo, 5)
+	}
+}
+
 func confirmMerge(mergeActions []mergeAction, notebookName string) (bool, error) {
 	fmt.Printf("Will synchronize %d notes:\n", len(mergeActions))
 
@@ -199,22 +217,10 @@ func confirmMerge(mergeActions []mergeAction, notebookName string) (bool, error)
 	pushCount := 0
 
 	for _, action := range mergeActions {
-		timestamp := action.fileName[:14]
+		printMergeAction(action)
 		if action.action == "pull_from_joplin" {
-			fmt.Printf("  ← %s - %s (pull from Joplin, updated %s)\n",
-				timestamp, action.title, action.joplinUpdate.Format("2006-01-02 15:04"))
-			if joplinMergeShowDiff && action.localBody != "" {
-				fmt.Printf("    Changes:\n")
-				showDiff(action.localBody, action.normalizedJoplinBody, 5)
-			}
 			pullCount++
 		} else if action.action == "push_to_joplin" {
-			fmt.Printf("  → %s - %s (push to Joplin, updated %s)\n",
-				timestamp, action.title, action.localUpdate.Format("2006-01-02 15:04"))
-			if joplinMergeShowDiff && action.localBody != "" {
-				fmt.Printf("    Changes:\n")
-				showDiff(action.normalizedJoplinBody, action.localBody, 5)
-			}
 			pushCount++
 		}
 	}
@@ -236,9 +242,9 @@ func confirmMerge(mergeActions []mergeAction, notebookName string) (bool, error)
 	return true, nil
 }
 
-func showDiff(localContent, joplinContent string, maxLines int) {
+func showDiff(localContent, joplinAsLocal string, maxLines int) {
 	localLines := strings.Split(localContent, "\n")
-	joplinLines := strings.Split(joplinContent, "\n")
+	joplinLines := strings.Split(joplinAsLocal, "\n")
 
 	maxLen := len(localLines)
 	if len(joplinLines) > maxLen {
