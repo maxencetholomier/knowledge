@@ -1,81 +1,169 @@
 package joplin
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
-	"kl/pkg/config"
+	"kl/pkg/utils"
+	"mime/multipart"
+	"os"
 	"regexp"
+	"strconv"
 	"strings"
+	"time"
 )
 
-func GetNotebookInfo(notebookName string) (string, string, error) {
-	if notebookName == "" {
-		notebookName = config.GetJoplinNotebook()
-	}
-
-	var notebookId string
-	if notebookName != "" {
-		var err error
-		notebookId, err = getNotebookIdByName(notebookName)
-		if err != nil {
-			return "", "", err
-		}
-	}
-
-	return notebookName, notebookId, nil
-}
-
-func replaceTimestampToIds(line string) (string, error) {
-	re := regexp.MustCompile(`[0-9]{14}(?:_[0-9]+)?\.(md|png|jpeg|jpg|svg)?`)
-
-	index := 0
-	result := re.ReplaceAllStringFunc(line, func(match string) string {
-		new_match := ":/" + FilenameToId(match, index)
-		index = index + 1
-		return new_match
-	})
-
-	return result, nil
-}
-
-func ReplaceIdsToLink(line string) string {
-
-	reImage := regexp.MustCompile(`!\[(.*?)\]\(:/([a-zA-Z0-9]{1,32})\)`)
-
-	result := reImage.ReplaceAllStringFunc(line, func(match string) string {
-		parts := reImage.FindStringSubmatch(match)
-		alt_name := parts[1]
-		id := parts[2]
-		new_match := IdToFilename(id)
-		return "![" + alt_name + "](" + new_match + ")"
-	})
-
-	reLink := regexp.MustCompile(`\[(.*?)\]\(:/([a-zA-Z0-9]{1,32})\)`)
-
-	result = reLink.ReplaceAllStringFunc(result, func(match string) string {
-		parts := reLink.FindStringSubmatch(match)
-		alt_name := parts[1]
-		id := parts[2]
-		new_match := IdToFilename(id)
-		return "[" + alt_name + "](" + new_match + ")"
-	})
-
-	return result
-}
-
-func StripLeadingHeading(body string) string {
-	if !strings.HasPrefix(body, "# ") {
-		return body
-	}
-	newline := strings.Index(body, "\n")
-	if newline == -1 {
-		return ""
-	}
-	return strings.TrimLeft(body[newline+1:], "\n")
+type Note struct {
+	ID          string
+	Title       string
+	Body        string
+	ParentID    string
+	UpdatedTime time.Time
 }
 
 type LocalNote struct {
 	Timestamp string
 	Title     string
+}
+
+type Method string
+
+const (
+	POST Method = "POST"
+	PUT  Method = "PUT"
+)
+
+type GetQuery struct {
+	Fields      []string
+	NotebookID  string
+	OnlyDeleted bool
+}
+
+type WriteQuery struct {
+	Method     Method
+	FileName   string
+	DirZet     string
+	NotebookId string
+	Index      int
+}
+
+func jsonReadValue(data map[string]interface{}, expectedType string) (string, error) {
+	value, ok := data["has_more"]
+	if !ok {
+		return "", fmt.Errorf("key body not found in JSON")
+	}
+
+	switch expectedType {
+	case "bool":
+		boolValue, ok := value.(bool)
+		if !ok {
+			return "", fmt.Errorf("value for key body is not a string")
+		}
+		return strconv.FormatBool(boolValue), nil
+	default:
+		stringValue, ok := value.(string)
+		if !ok {
+			return "", fmt.Errorf("value for key body is not a string")
+		}
+		return stringValue, nil
+	}
+}
+
+func fetchAllPages(baseURL string, process func(map[string]interface{})) error {
+	page := 0
+	for {
+		body, err := httpGet(baseURL + "&page=" + strconv.Itoa(page))
+		if err != nil {
+			return err
+		}
+		var data map[string]interface{}
+		if err := json.Unmarshal(body, &data); err != nil {
+			return err
+		}
+		items, _ := data["items"].([]interface{})
+		for _, item := range items {
+			if itemMap, ok := item.(map[string]interface{}); ok {
+				process(itemMap)
+			}
+		}
+		hasMore, err := jsonReadValue(data, "bool")
+		if err != nil || hasMore != "true" {
+			break
+		}
+		page++
+	}
+	return nil
+}
+
+func GetNotes(q GetQuery) ([]Note, error) {
+	fieldsParam := "id," + strings.Join(q.Fields, ",")
+	if q.OnlyDeleted {
+		fieldsParam += ",deleted_time"
+	}
+
+	resource := "notes"
+	if q.NotebookID != "" {
+		resource = "folders/" + q.NotebookID + "/notes"
+	}
+
+	url, err := buildJoplinURL(resource, "&fields="+fieldsParam+"&limit=50")
+	if err != nil {
+		return nil, err
+	}
+	if q.OnlyDeleted {
+		url += "&include_deleted=1"
+	}
+
+	var notes []Note
+	err = fetchAllPages(url, func(item map[string]interface{}) {
+		if q.OnlyDeleted {
+			deletedTime, _ := item["deleted_time"].(float64)
+			if deletedTime == 0 {
+				return
+			}
+		}
+		note := Note{}
+		if id, ok := item["id"].(string); ok {
+			note.ID = id
+		}
+		if title, ok := item["title"].(string); ok {
+			note.Title = title
+		}
+		if b, ok := item["body"].(string); ok {
+			note.Body = b
+		}
+		if parentID, ok := item["parent_id"].(string); ok {
+			note.ParentID = parentID
+		}
+		if updatedTime, ok := item["updated_time"].(float64); ok {
+			note.UpdatedTime = time.UnixMilli(int64(updatedTime))
+		}
+		notes = append(notes, note)
+	})
+	return notes, err
+}
+
+func GetNoteIDs(query GetQuery) ([]string, error) {
+	resource := "notes"
+	if query.NotebookID != "" {
+		resource = "folders/" + query.NotebookID + "/notes"
+	}
+	return getRawIds(resource)
+}
+
+func getRawIds(idType string) ([]string, error) {
+	url, err := buildJoplinURL(idType, "&limit=50")
+	if err != nil {
+		return nil, err
+	}
+
+	var ids []string
+	err = fetchAllPages(url, func(item map[string]interface{}) {
+		if id, ok := item["id"].(string); ok {
+			ids = append(ids, id)
+		}
+	})
+	return ids, err
 }
 
 func FilterLocalNotes(notes []Note) []LocalNote {
@@ -101,35 +189,118 @@ func FilterLocalNotes(notes []Note) []LocalNote {
 	return result
 }
 
-func convertResourceLinks(content, timestamp string) (string, error) {
-	id, err := replaceTimestampToIds(timestamp)
-	if err != nil {
-		return "", err
+func Send(query WriteQuery) error {
+	if isImageResource(query.FileName) {
+		var b bytes.Buffer
+		writer := multipart.NewWriter(&b)
+
+		if err := getBytes(query.FileName, &b, writer, query.DirZet, query.Index); err != nil {
+			return err
+		}
+
+		url, err := buildJoplinURL("resources", "")
+		if err != nil {
+			return err
+		}
+
+		return httpSend("POST", url, b, writer.FormDataContentType(), fmt.Sprintf("resource %s", query.FileName))
 	}
-	return replacingJoplinLink(content, id)
+
+	endpoint := "notes"
+	if query.Method == PUT {
+		endpoint = "notes/" + FilenameToId(query.FileName, 0)
+	}
+
+	url, err := buildJoplinURL(endpoint, "")
+	if err != nil {
+		return err
+	}
+
+	jsonData, err := noteToJSON(string(query.Method), query.FileName, query.DirZet, query.NotebookId)
+	if err != nil {
+		return err
+	}
+
+	b := bytes.NewBuffer(jsonData)
+	return httpSend(string(query.Method), url, *b, "application/json", fmt.Sprintf("note %s", query.FileName))
 }
 
-func NoteToMarkdown(title, body, timestamp string) (string, error) {
-	content := "# " + title + "\n\n" + StripLeadingHeading(body)
-	content, err := convertResourceLinks(content, timestamp)
+func SendResourceFromBody(input string, DirZet string) error {
+	pattern := `\[.*?\]\(([0-9]{14}(?:_[0-9]+)?\.(?:jpg|png|svg))\)`
+
+	regex, err := regexp.Compile(pattern)
 	if err != nil {
-		return "", err
+		return err
 	}
-	return strings.ReplaceAll(content, "&nbsp;", ""), nil
+
+	matches := regex.FindAllStringSubmatch(input, -1)
+	if len(matches) == 0 {
+		return nil
+	}
+
+	for index, match := range matches {
+		if len(match) > 1 {
+			err := Send(WriteQuery{Method: POST, FileName: match[1], DirZet: DirZet, Index: index})
+			if err != nil {
+				return fmt.Errorf("failed to post resource %s: %w", match[1], err)
+			}
+		}
+	}
+
+	return nil
 }
 
-func replacingJoplinLink(input string, timestamp string) (string, error) {
-	pattern := `\[.*?\]\(:/[a-zA-Z0-9]{1,32}\)`
-	re, err := regexp.Compile(pattern)
-	if err != nil {
-		return "", err
-	}
-	index := 0
-	result := re.ReplaceAllStringFunc(input, func(match string) string {
-		replacement := "![](" + timestamp + "_" + fmt.Sprintf("%d", index) + ".png)"
-		index++
-		return replacement
-	})
+func DeleteNoteFromJoplin(id string) error {
+	return deleteFromJoplin("notes", id, "&permanent=1")
+}
 
-	return result, nil
+func deleteFromJoplin(endpoint string, id string, queryParams string) error {
+	time.Sleep(200)
+	url, err := buildJoplinURL(endpoint+"/"+id, queryParams)
+	if err != nil {
+		return err
+	}
+	return httpDelete(url)
+}
+
+func noteToJSON(method string, filename string, DirZet string, notebookId string) ([]byte, error) {
+	file, err := os.ReadFile(DirZet + "/" + filename)
+	if err != nil {
+		return nil, err
+	}
+
+	content, err := replaceTimestampToIds(string(file))
+	if err != nil {
+		return nil, err
+	}
+
+	title := utils.GetFirstLine(content)
+	title = strings.TrimPrefix(title, "#")
+	title = strings.Trim(title, " ")
+
+	lines := strings.Split(content, "\n")
+	body := ""
+	if len(lines) > 1 {
+		body = strings.Join(lines[1:], "\n")
+		body = strings.TrimLeft(body, "\n")
+	}
+
+	data := map[string]string{
+		"title": title,
+		"body":  body,
+	}
+
+	if method == "POST" {
+		data["id"] = FilenameToId(filename, 0)
+	}
+
+	if notebookId != "" {
+		data["parent_id"] = notebookId
+	}
+
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return nil, err
+	}
+	return jsonData, nil
 }
