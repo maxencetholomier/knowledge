@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-func FilenameToNoteID(filename string, index int) string {
+func FilenameToId(filename string, index int) string {
 	ext := strings.ToLower(files.GetFileType(filename))
 	timestamp := filename[:14]
 
@@ -32,7 +32,7 @@ func FilenameToNoteID(filename string, index int) string {
 	}
 }
 
-func NoteIDToFilename(noteID string) string {
+func IdToFilename(noteID string) string {
 	if len(noteID) != 32 {
 		return ""
 	}
