@@ -172,7 +172,7 @@ func getAlreadyExportedTimestamps(notebookId string) ([]string, error) {
 
 	var timestamps []string
 	for _, id := range filterAlreadyExportedIds(ids) {
-		filename := joplin.NoteIDToFilename(id)
+		filename := joplin.IdToFilename(id)
 		if filename != "" {
 			timestamp := strings.Split(filename, ".")[0]
 			if len(timestamp) == 14 {
@@ -189,7 +189,7 @@ func exportNote(note localNoteToExport, notebookId string) (noteErr, resourceErr
 		return fmt.Errorf("failed to read note file: %w", err), nil
 	}
 
-	if err = joplin.PostResourceFromBody(string(content), DirZet); err != nil {
+	if err = joplin.SendResourceFromBody(string(content), DirZet); err != nil {
 		resourceErr = err
 	}
 
