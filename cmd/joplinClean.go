@@ -96,7 +96,7 @@ var joplinCleanCmd = &cobra.Command{
 				displayName = "untitled note"
 			}
 
-			err := joplin.DeleteNoteFromJoplin(note.ID)
+			err := joplin.DeleteNote(note.ID)
 			if err != nil {
 				fmt.Printf("✗ Failed to delete \"%s\": %v\n", displayName, err)
 			} else {

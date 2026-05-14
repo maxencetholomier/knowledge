@@ -63,12 +63,12 @@ func NoteToMarkdown(title, body, timestamp string) (string, error) {
 	return strings.ReplaceAll(content, "&nbsp;", ""), nil
 }
 
-func convertResourceLinks(content, timestamp string) (string, error) {
+func convertResourceLinks(input, timestamp string) (string, error) {
 	id, err := replaceTimestampToIds(timestamp)
 	if err != nil {
 		return "", err
 	}
-	return replacingJoplinLink(content, id)
+	return replacingJoplinLink(input, id)
 }
 
 func replacingJoplinLink(input string, timestamp string) (string, error) {

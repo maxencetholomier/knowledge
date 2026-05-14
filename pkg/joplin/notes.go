@@ -225,7 +225,7 @@ func Send(query WriteQuery) error {
 	return httpSend(string(query.Method), url, *b, "application/json", fmt.Sprintf("note %s", query.FileName))
 }
 
-func SendResourceFromBody(input string, DirZet string) error {
+func SendResourceFromBody(body string, DirZet string) error {
 	pattern := `\[.*?\]\(([0-9]{14}(?:_[0-9]+)?\.(?:jpg|png|svg))\)`
 
 	regex, err := regexp.Compile(pattern)
@@ -233,7 +233,7 @@ func SendResourceFromBody(input string, DirZet string) error {
 		return err
 	}
 
-	matches := regex.FindAllStringSubmatch(input, -1)
+	matches := regex.FindAllStringSubmatch(body, -1)
 	if len(matches) == 0 {
 		return nil
 	}
@@ -250,7 +250,7 @@ func SendResourceFromBody(input string, DirZet string) error {
 	return nil
 }
 
-func DeleteNoteFromJoplin(id string) error {
+func DeleteNote(id string) error {
 	return deleteFromJoplin("notes", id, "&permanent=1")
 }
 

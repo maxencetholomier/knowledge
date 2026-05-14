@@ -32,12 +32,12 @@ func FilenameToId(filename string, index int) string {
 	}
 }
 
-func IdToFilename(noteID string) string {
-	if len(noteID) != 32 {
+func IdToFilename(id string) string {
+	if len(id) != 32 {
 		return ""
 	}
 
-	suffix := noteID[29:32]
+	suffix := id[29:32]
 	extMap := map[string]string{
 		"aaa": "md",
 		"bbb": "png",
@@ -51,11 +51,11 @@ func IdToFilename(noteID string) string {
 	}
 
 	if ext == "md" {
-		timestamp := noteID[15:29]
+		timestamp := id[15:29]
 		return timestamp + "." + ext
 	} else {
-		timestamp := noteID[15:29]
-		index := strings.TrimLeft(noteID[11:15], "0")
+		timestamp := id[15:29]
+		index := strings.TrimLeft(id[11:15], "0")
 		if index == "" {
 			index = "0"
 		}
