@@ -9,8 +9,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// TODO: for fzf should be able to edit multiple note
-// TODO: without fzf it should be able to take a list of timestamp
 var editCmd = &cobra.Command{
 	Use:     "edit",
 	Aliases: []string{"e"},

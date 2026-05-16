@@ -8,7 +8,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// TODO: Add all linked not with a specific notes
 var listCmd = &cobra.Command{
 	Use:     "list",
 	Aliases: []string{"l"},

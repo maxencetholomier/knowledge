@@ -7,9 +7,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// TODO: should be able use fzf selector
-// TODO: for fzf should be able to delete multiple note
-// TODO: without fzf it should be able to take a list of timestamp
 var deleteCmd = &cobra.Command{
 	Use:     "delete",
 	Aliases: []string{"d"},
