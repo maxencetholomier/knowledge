@@ -29,85 +29,105 @@ var joplinCleanCmd = &cobra.Command{
 			return fmt.Errorf("failed to get Joplin notes: %w", err)
 		}
 
-		var notesToDelete []joplin.Note
+		notesToDelete := collectNotesToDelete(joplinNotes, localTimestamps)
 
-		for _, joplinNote := range joplinNotes {
-			filename := joplin.IdToFilename(joplinNote.ID)
-			if filename != "" {
-				noteTimestamp := strings.Split(filename, ".")[0]
-				if len(noteTimestamp) == 14 {
-					found := false
-					for _, localTimestamp := range localTimestamps {
-						if noteTimestamp == localTimestamp {
-							found = true
-							break
-						}
+		confirmed, err := confirmCleaning(notesToDelete)
+		if err != nil {
+			return err
+		}
+
+		if !confirmed {
+			return nil
+		}
+
+		return deleteJoplinNotes(notesToDelete)
+	},
+}
+
+func deleteJoplinNotes(notes []joplin.Note) error {
+	fmt.Printf("\nDeleting %d notes from Joplin...\n", len(notes))
+
+	deletedCount := 0
+	for _, note := range notes {
+		displayName := note.Title
+		if displayName == "" {
+			displayName = "untitled note"
+		}
+
+		if err := joplin.DeleteNote(note.ID); err != nil {
+			fmt.Printf("✗ Failed to delete \"%s\": %v\n", displayName, err)
+		} else {
+			fmt.Printf("✓ Deleted \"%s\"\n", displayName)
+			deletedCount++
+		}
+	}
+
+	fmt.Printf("\nCleaning completed. Deleted %d notes from Joplin.\n", deletedCount)
+	return nil
+}
+
+func confirmCleaning(notes []joplin.Note) (bool, error) {
+	if len(notes) == 0 {
+		fmt.Println("No notes to clean from Joplin.")
+		return false, nil
+	}
+
+	fmt.Printf("Found %d notes in Joplin that are not present locally:\n", len(notes))
+	for _, note := range notes {
+		filename := joplin.IdToFilename(note.ID)
+		if filename != "" {
+			timestamp := strings.Split(filename, ".")[0]
+			if note.Title != "" {
+				fmt.Printf("  • %s - %s\n", timestamp, note.Title)
+			} else {
+				fmt.Printf("  • %s (no title)\n", timestamp)
+			}
+		} else {
+			if note.Title != "" {
+				fmt.Printf("  • %s (unrecognized ID format)\n", note.Title)
+			} else {
+				fmt.Printf("  • (no title, unrecognized ID format)\n")
+			}
+		}
+	}
+
+	confirmed, err := prompt.Confirm("Do you want to delete these notes from Joplin?")
+	if err != nil {
+		return false, err
+	}
+	if !confirmed {
+		fmt.Println("Operation cancelled.")
+	}
+	return confirmed, nil
+}
+
+func collectNotesToDelete(joplinNotes []joplin.Note, localTimestamps []string) []joplin.Note {
+	var notesToDelete []joplin.Note
+
+	for _, joplinNote := range joplinNotes {
+		filename := joplin.IdToFilename(joplinNote.ID)
+		if filename != "" {
+			noteTimestamp := strings.Split(filename, ".")[0]
+			if len(noteTimestamp) == 14 {
+				found := false
+				for _, localTimestamp := range localTimestamps {
+					if noteTimestamp == localTimestamp {
+						found = true
+						break
 					}
-					if !found {
-						notesToDelete = append(notesToDelete, joplinNote)
-					}
-				} else {
+				}
+				if !found {
 					notesToDelete = append(notesToDelete, joplinNote)
 				}
 			} else {
 				notesToDelete = append(notesToDelete, joplinNote)
 			}
+		} else {
+			notesToDelete = append(notesToDelete, joplinNote)
 		}
+	}
 
-		if len(notesToDelete) == 0 {
-			fmt.Println("No notes to clean from Joplin.")
-			return nil
-		}
-
-		fmt.Printf("Found %d notes in Joplin that are not present locally:\n", len(notesToDelete))
-		for _, note := range notesToDelete {
-			filename := joplin.IdToFilename(note.ID)
-			if filename != "" {
-				timestamp := strings.Split(filename, ".")[0]
-				if note.Title != "" {
-					fmt.Printf("  • %s - %s\n", timestamp, note.Title)
-				} else {
-					fmt.Printf("  • %s (no title)\n", timestamp)
-				}
-			} else {
-				if note.Title != "" {
-					fmt.Printf("  • %s (unrecognized ID format)\n", note.Title)
-				} else {
-					fmt.Printf("  • (no title, unrecognized ID format)\n")
-				}
-			}
-		}
-
-		confirmed, err := prompt.Confirm("Do you want to delete these notes from Joplin?")
-		if err != nil {
-			return err
-		}
-		if !confirmed {
-			fmt.Println("Operation cancelled.")
-			return nil
-		}
-
-		fmt.Printf("\nDeleting %d notes from Joplin...\n", len(notesToDelete))
-
-		deletedCount := 0
-		for _, note := range notesToDelete {
-			displayName := note.Title
-			if displayName == "" {
-				displayName = "untitled note"
-			}
-
-			err := joplin.DeleteNote(note.ID)
-			if err != nil {
-				fmt.Printf("✗ Failed to delete \"%s\": %v\n", displayName, err)
-			} else {
-				fmt.Printf("✓ Deleted \"%s\"\n", displayName)
-				deletedCount++
-			}
-		}
-
-		fmt.Printf("\nCleaning completed. Deleted %d notes from Joplin.\n", deletedCount)
-		return nil
-	},
+	return notesToDelete
 }
 
 func init() {
