@@ -117,6 +117,9 @@ func readNoteList(listFile string) ([]string, error) {
 
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
+		if idx := strings.Index(line, " #"); idx != -1 {
+			line = strings.TrimSpace(line[:idx])
+		}
 		if line != "" && !strings.HasPrefix(line, "#") && !seen[line] {
 			seen[line] = true
 			notes = append(notes, line)
