@@ -166,7 +166,7 @@ func getRawIds(idType string) ([]string, error) {
 	return ids, err
 }
 
-func FilterLocalNotes(notes []Note) []LocalNote {
+func ToLocalNotes(notes []Note) []LocalNote {
 	var result []LocalNote
 	for _, note := range notes {
 		if !strings.HasSuffix(note.ID, "aaa") {

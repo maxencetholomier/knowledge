@@ -135,7 +135,7 @@ func getJoplinList() (map[string]string, error) {
 	}
 
 	notes := make(map[string]string)
-	for _, note := range joplin.FilterLocalNotes(joplinNotes) {
+	for _, note := range joplin.ToLocalNotes(joplinNotes) {
 		notes[note.Timestamp] = note.Title
 	}
 	return notes, nil
