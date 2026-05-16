@@ -70,7 +70,7 @@ func jsonReadValue(data map[string]interface{}, expectedType string) (string, er
 }
 
 func fetchAllPages(baseURL string, process func(map[string]interface{})) error {
-	page := 0
+	page := 1
 	for {
 		body, err := httpGet(baseURL + "&page=" + strconv.Itoa(page))
 		if err != nil {
