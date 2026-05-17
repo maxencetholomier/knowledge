@@ -12,6 +12,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var translateAnki bool
+
 var translateCmd = &cobra.Command{
 	Use:     "translate [timestamp...]",
 	Aliases: []string{"t"},
@@ -42,7 +44,7 @@ Timestamps can be with or without .md extension.`,
 			timestamps = args
 		}
 
-		return translateTimestamps(timestamps, DirZet)
+		return translateTimestamps(timestamps, DirZet, translateAnki)
 	},
 }
 
@@ -67,7 +69,7 @@ func cleanTitle(title string) string {
 	return title
 }
 
-func translateTimestamps(timestamps []string, dirZet string) error {
+func translateTimestamps(timestamps []string, dirZet string, anki bool) error {
 	for _, ts := range timestamps {
 		cleanTS := normalizeTimestamp(ts)
 
@@ -86,11 +88,16 @@ func translateTimestamps(timestamps []string, dirZet string) error {
 		}
 
 		cleanedTitle := cleanTitle(title)
-		fmt.Printf("%s # %s\n", cleanTS, cleanedTitle)
+		if anki {
+			fmt.Printf("%s.md # %s\n", cleanTS, cleanedTitle)
+		} else {
+			fmt.Printf("%s # %s\n", cleanTS, cleanedTitle)
+		}
 	}
 	return nil
 }
 
 func init() {
+	translateCmd.Flags().BoolVarP(&translateAnki, "anki", "a", false, "Output format with .md extension (for Anki export)")
 	rootCmd.AddCommand(translateCmd)
 }
