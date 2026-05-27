@@ -52,7 +52,7 @@ Lines starting with # are treated as comments and ignored. Inline comments are a
 			return err
 		}
 
-		deckResults := make(map[string]DeckExportResult)
+		deckResults := make(map[string]deckExportResult)
 		totalExported := 0
 		totalSkipped := 0
 
@@ -68,7 +68,7 @@ Lines starting with # are treated as comments and ignored. Inline comments are a
 				continue
 			}
 
-			deckResults[deckName] = DeckExportResult{
+			deckResults[deckName] = deckExportResult{
 				Stats:      stats,
 				OutputPath: outputPath,
 			}
@@ -117,7 +117,7 @@ func init() {
 	ankiCmd.AddCommand(ankiExportCmd)
 }
 
-type DeckStats struct {
+type deckStats struct {
 	NotesProcessed int
 	NotesExported  int
 	NotesSkipped   int
@@ -172,8 +172,8 @@ func getSortedDeckNames(deckFiles map[string]string) []string {
 }
 
 
-func processDeck(deckName, deckFilePath string, noteTitleMap map[string]string) (DeckStats, string, error) {
-	stats := DeckStats{}
+func processDeck(deckName, deckFilePath string, noteTitleMap map[string]string) (deckStats, string, error) {
+	stats := deckStats{}
 
 	noteFiles, err := readNoteList(deckFilePath)
 	if err != nil {
@@ -238,12 +238,12 @@ func processDeck(deckName, deckFilePath string, noteTitleMap map[string]string) 
 	return stats, outputPath, nil
 }
 
-type DeckExportResult struct {
-	Stats      DeckStats
+type deckExportResult struct {
+	Stats      deckStats
 	OutputPath string
 }
 
-func printExportStats(deckResults map[string]DeckExportResult, totalExported, totalSkipped int) {
+func printExportStats(deckResults map[string]deckExportResult, totalExported, totalSkipped int) {
 	fmt.Printf("\nExport complete!\n")
 	fmt.Printf("- Decks exported: %d\n", len(deckResults))
 
