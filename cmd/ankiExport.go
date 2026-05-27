@@ -124,9 +124,6 @@ type deckStats struct {
 	ImagesAdded    int
 }
 
-func sanitizeDeckName(name string) string {
-	return strings.TrimSpace(name)
-}
 
 func discoverDeckFiles(dir string) (map[string]string, error) {
 	entries, err := os.ReadDir(dir)
@@ -150,8 +147,7 @@ func discoverDeckFiles(dir string) (map[string]string, error) {
 				continue
 			}
 
-			sanitizedName := sanitizeDeckName(deckName)
-			deckFiles[sanitizedName] = filepath.Join(dir, name)
+			deckFiles[strings.TrimSpace(deckName)] = filepath.Join(dir, name)
 		}
 	}
 
