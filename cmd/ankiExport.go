@@ -47,9 +47,10 @@ Lines starting with # are treated as comments and ignored. Inline comments are a
 			}
 		}
 
-		fmt.Println("Building note index...")
-		allNoteFiles := gatherAllNoteFiles(deckFiles)
-		noteTitleMap := buildNoteTitleMap(allNoteFiles)
+		noteTitleMap, err := getLocalList()
+		if err != nil {
+			return err
+		}
 
 		deckResults := make(map[string]DeckExportResult)
 		totalExported := 0
@@ -86,22 +87,6 @@ Lines starting with # are treated as comments and ignored. Inline comments are a
 	},
 }
 
-func extractNoteTitleFromFile(notePath string) (string, error) {
-	content, err := os.ReadFile(notePath)
-	if err != nil {
-		return "", err
-	}
-
-	lines := strings.Split(string(content), "\n")
-	for _, line := range lines {
-		trimmed := strings.TrimSpace(line)
-		if strings.HasPrefix(trimmed, "#") {
-			title := strings.TrimPrefix(trimmed, "#")
-			return strings.TrimSpace(title), nil
-		}
-	}
-	return "", fmt.Errorf("no title found")
-}
 
 func readNoteList(listFile string) ([]string, error) {
 	file, err := os.Open(listFile)
@@ -186,47 +171,6 @@ func getSortedDeckNames(deckFiles map[string]string) []string {
 	return names
 }
 
-func gatherAllNoteFiles(deckFiles map[string]string) []string {
-	noteSet := make(map[string]bool)
-
-	for _, deckFile := range deckFiles {
-		notes, err := readNoteList(deckFile)
-		if err != nil {
-			continue
-		}
-		for _, note := range notes {
-			noteSet[note] = true
-		}
-	}
-
-	result := make([]string, 0, len(noteSet))
-	for note := range noteSet {
-		result = append(result, note)
-	}
-	return result
-}
-
-func buildNoteTitleMap(noteFiles []string) map[string]string {
-	noteTitleMap := make(map[string]string)
-
-	for _, noteFile := range noteFiles {
-		noteID := strings.TrimSuffix(noteFile, ".md")
-		notePath := filepath.Join(DirZet, noteFile)
-
-		if _, err := os.Stat(notePath); os.IsNotExist(err) {
-			continue
-		}
-
-		title, err := extractNoteTitleFromFile(notePath)
-		if err == nil {
-			noteTitleMap[noteID] = title
-		} else {
-			noteTitleMap[noteID] = noteID
-		}
-	}
-
-	return noteTitleMap
-}
 
 func processDeck(deckName, deckFilePath string, noteTitleMap map[string]string) (DeckStats, string, error) {
 	stats := DeckStats{}
