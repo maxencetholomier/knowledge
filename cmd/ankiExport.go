@@ -12,7 +12,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// TODO: For note 20251220142237.md  the carraige retrun have disapear
 var ankiExportCmd = &cobra.Command{
 	Use:   "export",
 	Short: "Export selected notes to Anki package (.apkg)",
@@ -31,7 +30,7 @@ Each deck file should contain a list of note filenames (one per line):
   20240101120000.md
   20240102130000.md
 
-Lines starting with # are treated as comments and ignored.`,
+Lines starting with # are treated as comments and ignored. Inline comments are also supported.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		deckFiles, err := discoverDeckFiles(DirZet)
 		if err != nil {
