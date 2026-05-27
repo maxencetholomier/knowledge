@@ -37,56 +37,69 @@ Lines starting with # are treated as comments and ignored. Inline comments are a
 			return err
 		}
 
-		fmt.Printf("Discovered %d deck(s): %s\n",
-			len(deckFiles),
-			strings.Join(getSortedDeckNames(deckFiles), ", "))
+		printDeckFilesToExport(deckFiles)
 
-		if _, err := os.Stat(DirExport); os.IsNotExist(err) {
-			if err := os.Mkdir(DirExport, 0755); err != nil {
-				return fmt.Errorf("failed to create export directory: %w", err)
-			}
+		if err := createExportDir(); err != nil {
+			return err
 		}
 
-		noteTitleMap, err := getLocalList()
+		deckResults, err := exportDeckFiles(deckFiles)
 		if err != nil {
 			return err
 		}
 
-		deckResults := make(map[string]deckExportResult)
-		totalExported := 0
-		totalSkipped := 0
-
-		for deckName, deckFilePath := range deckFiles {
-			stats, outputPath, err := processDeck(deckName, deckFilePath, noteTitleMap)
-			if err != nil {
-				fmt.Printf("Warning: Failed to process deck '%s': %v, skipping\n", deckName, err)
-				continue
-			}
-
-			if stats.NotesProcessed == 0 {
-				fmt.Printf("Warning: Deck '%s' has no notes, skipping\n", deckName)
-				continue
-			}
-
-			deckResults[deckName] = deckExportResult{
-				Stats:      stats,
-				OutputPath: outputPath,
-			}
-			totalExported += stats.NotesExported
-			totalSkipped += stats.NotesSkipped
-		}
-
-		if totalExported == 0 {
-			fmt.Println("No notes to export")
-			return nil
-		}
-
-		printAnkiExportSummary(deckResults, totalExported, totalSkipped)
+		printAnkiExportSummary(deckResults)
 
 		return nil
 	},
 }
 
+func createExportDir() error {
+	if _, err := os.Stat(DirExport); os.IsNotExist(err) {
+		if err := os.Mkdir(DirExport, 0755); err != nil {
+			return fmt.Errorf("failed to create export directory: %w", err)
+		}
+	}
+	return nil
+}
+
+func printDeckFilesToExport(deckFiles map[string]string) {
+	fmt.Printf("Discovered %d deck(s): %s\n",
+		len(deckFiles),
+		strings.Join(getSortedDeckNames(deckFiles), ", "))
+}
+
+func exportDeckFiles(deckFiles map[string]string) (map[string]deckExportResult, error) {
+	noteTitleMap, err := getLocalList()
+	if err != nil {
+		return nil, err
+	}
+
+	results := make(map[string]deckExportResult)
+	for deckName, deckFilePath := range deckFiles {
+		result, err := exportDeckFile(deckName, deckFilePath, noteTitleMap)
+		if err != nil {
+			fmt.Printf("Warning: Failed to export deck '%s': %v, skipping\n", deckName, err)
+			continue
+		}
+		if result != nil {
+			results[deckName] = *result
+		}
+	}
+	return results, nil
+}
+
+func exportDeckFile(deckName, deckFilePath string, noteTitleMap map[string]string) (*deckExportResult, error) {
+	stats, outputPath, err := processDeck(deckName, deckFilePath, noteTitleMap)
+	if err != nil {
+		return nil, err
+	}
+	if stats.NotesProcessed == 0 {
+		fmt.Printf("Warning: Deck '%s' has no notes, skipping\n", deckName)
+		return nil, nil
+	}
+	return &deckExportResult{Stats: stats, OutputPath: outputPath}, nil
+}
 
 func readNoteList(listFile string) ([]string, error) {
 	file, err := os.Open(listFile)
@@ -123,7 +136,6 @@ type deckStats struct {
 	NotesSkipped   int
 	ImagesAdded    int
 }
-
 
 func getDeckFiles(dir string) (map[string]string, error) {
 	entries, err := os.ReadDir(dir)
@@ -166,7 +178,6 @@ func getSortedDeckNames(deckFiles map[string]string) []string {
 	sort.Strings(names)
 	return names
 }
-
 
 func processDeck(deckName, deckFilePath string, noteTitleMap map[string]string) (deckStats, string, error) {
 	stats := deckStats{}
@@ -239,7 +250,19 @@ type deckExportResult struct {
 	OutputPath string
 }
 
-func printAnkiExportSummary(deckResults map[string]deckExportResult, totalExported, totalSkipped int) {
+func printAnkiExportSummary(deckResults map[string]deckExportResult) {
+	if len(deckResults) == 0 {
+		fmt.Println("No notes to export")
+		return
+	}
+
+	totalExported := 0
+	totalSkipped := 0
+	for _, r := range deckResults {
+		totalExported += r.Stats.NotesExported
+		totalSkipped += r.Stats.NotesSkipped
+	}
+
 	fmt.Printf("\nExport complete!\n")
 	fmt.Printf("- Decks exported: %d\n", len(deckResults))
 
