@@ -17,7 +17,7 @@ var ankiDiffCmd = &cobra.Command{
 By default shows both local-only and Anki-only notes.
 Use --local to show only notes not in Anki, --anki to show only notes not local.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		deckFiles, err := discoverDeckFiles(DirZet)
+		deckFiles, err := getDeckFiles(DirZet)
 		if err != nil {
 			return err
 		}

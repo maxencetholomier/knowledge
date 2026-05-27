@@ -32,7 +32,7 @@ Each deck file should contain a list of note filenames (one per line):
 
 Lines starting with # are treated as comments and ignored. Inline comments are also supported.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		deckFiles, err := discoverDeckFiles(DirZet)
+		deckFiles, err := getDeckFiles(DirZet)
 		if err != nil {
 			return err
 		}
@@ -125,7 +125,7 @@ type deckStats struct {
 }
 
 
-func discoverDeckFiles(dir string) (map[string]string, error) {
+func getDeckFiles(dir string) (map[string]string, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read directory: %w", err)
