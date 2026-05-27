@@ -74,10 +74,10 @@ Use --local to show only notes not in Anki, --anki to show only notes not local.
 	},
 }
 
-func buildAnkiNoteSet(deckFiles map[string]string) map[string]bool {
+func buildAnkiNoteSet(deckFiles []deckFile) map[string]bool {
 	set := make(map[string]bool)
-	for _, deckFilePath := range deckFiles {
-		notes, err := readNoteList(deckFilePath)
+	for _, deck := range deckFiles {
+		notes, err := readNoteList(deck.Path)
 		if err != nil {
 			continue
 		}

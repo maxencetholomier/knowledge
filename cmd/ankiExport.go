@@ -55,39 +55,41 @@ Lines starting with # are treated as comments and ignored. Inline comments are a
 	},
 }
 
-func printDeckFilesToExport(deckFiles map[string]string) {
-	fmt.Printf("Discovered %d deck(s): %s\n",
-		len(deckFiles),
-		strings.Join(getSortedDeckNames(deckFiles), ", "))
+func printDeckFilesToExport(deckFiles []deckFile) {
+	names := make([]string, len(deckFiles))
+	for i, d := range deckFiles {
+		names[i] = d.Name
+	}
+	fmt.Printf("Discovered %d deck(s): %s\n", len(deckFiles), strings.Join(names, ", "))
 }
 
-func exportDeckFiles(deckFiles map[string]string) (map[string]deckExportResult, error) {
+func exportDeckFiles(deckFiles []deckFile) (map[string]deckExportResult, error) {
 	noteTitleMap, err := getLocalList()
 	if err != nil {
 		return nil, err
 	}
 
 	results := make(map[string]deckExportResult)
-	for deckName, deckFilePath := range deckFiles {
-		result, err := exportDeckFile(deckName, deckFilePath, noteTitleMap)
+	for _, deck := range deckFiles {
+		result, err := exportDeckFile(deck, noteTitleMap)
 		if err != nil {
-			fmt.Printf("Warning: Failed to export deck '%s': %v, skipping\n", deckName, err)
+			fmt.Printf("Warning: Failed to export deck '%s': %v, skipping\n", deck.Name, err)
 			continue
 		}
 		if result != nil {
-			results[deckName] = *result
+			results[deck.Name] = *result
 		}
 	}
 	return results, nil
 }
 
-func exportDeckFile(deckName, deckFilePath string, noteTitleMap map[string]string) (*deckExportResult, error) {
-	stats, outputPath, err := processDeck(deckName, deckFilePath, noteTitleMap)
+func exportDeckFile(deck deckFile, noteTitleMap map[string]string) (*deckExportResult, error) {
+	stats, outputPath, err := processDeck(deck, noteTitleMap)
 	if err != nil {
 		return nil, err
 	}
 	if stats.NotesProcessed == 0 {
-		fmt.Printf("Warning: Deck '%s' has no notes, skipping\n", deckName)
+		fmt.Printf("Warning: Deck '%s' has no notes, skipping\n", deck.Name)
 		return nil, nil
 	}
 	return &deckExportResult{Stats: stats, OutputPath: outputPath}, nil
@@ -122,6 +124,11 @@ func init() {
 	ankiCmd.AddCommand(ankiExportCmd)
 }
 
+type deckFile struct {
+	Name string
+	Path string
+}
+
 type deckStats struct {
 	NotesProcessed int
 	NotesExported  int
@@ -129,13 +136,13 @@ type deckStats struct {
 	ImagesAdded    int
 }
 
-func getDeckFiles(dir string) (map[string]string, error) {
+func getDeckFiles(dir string) ([]deckFile, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read directory: %w", err)
 	}
 
-	deckFiles := make(map[string]string)
+	var deckFiles []deckFile
 	prefix := "anki_export_"
 
 	for _, entry := range entries {
@@ -151,7 +158,10 @@ func getDeckFiles(dir string) (map[string]string, error) {
 				continue
 			}
 
-			deckFiles[strings.TrimSpace(deckName)] = filepath.Join(dir, name)
+			deckFiles = append(deckFiles, deckFile{
+				Name: strings.TrimSpace(deckName),
+				Path: filepath.Join(dir, name),
+			})
 		}
 	}
 
@@ -159,22 +169,17 @@ func getDeckFiles(dir string) (map[string]string, error) {
 		return nil, fmt.Errorf("no anki_export_* files found in %s", dir)
 	}
 
+	sort.Slice(deckFiles, func(i, j int) bool {
+		return deckFiles[i].Name < deckFiles[j].Name
+	})
+
 	return deckFiles, nil
 }
 
-func getSortedDeckNames(deckFiles map[string]string) []string {
-	names := make([]string, 0, len(deckFiles))
-	for name := range deckFiles {
-		names = append(names, name)
-	}
-	sort.Strings(names)
-	return names
-}
-
-func processDeck(deckName, deckFilePath string, noteTitleMap map[string]string) (deckStats, string, error) {
+func processDeck(deck deckFile, noteTitleMap map[string]string) (deckStats, string, error) {
 	stats := deckStats{}
 
-	noteFiles, err := readNoteList(deckFilePath)
+	noteFiles, err := readNoteList(deck.Path)
 	if err != nil {
 		return stats, "", fmt.Errorf("failed to read note list: %w", err)
 	}
@@ -190,11 +195,11 @@ func processDeck(deckName, deckFilePath string, noteTitleMap map[string]string) 
 		return stats, "", fmt.Errorf("failed to create package: %w", err)
 	}
 
-	if err := pkg.CreateDeck(deckName); err != nil {
+	if err := pkg.CreateDeck(deck.Name); err != nil {
 		return stats, "", fmt.Errorf("failed to create deck: %w", err)
 	}
 
-	fmt.Printf("Processing deck: %s (%d notes)\n", deckName, len(noteFiles))
+	fmt.Printf("Processing deck: %s (%d notes)\n", deck.Name, len(noteFiles))
 
 	for i, noteFile := range noteFiles {
 		notePath := filepath.Join(DirZet, noteFile)
@@ -219,7 +224,7 @@ func processDeck(deckName, deckFilePath string, noteTitleMap map[string]string) 
 			stats.ImagesAdded++
 		}
 
-		if err := pkg.AddNote(deckName, note); err != nil {
+		if err := pkg.AddNote(deck.Name, note); err != nil {
 			fmt.Printf("  Warning: Failed to add note to deck: %v, skipping\n", err)
 			stats.NotesSkipped++
 			continue
@@ -228,7 +233,7 @@ func processDeck(deckName, deckFilePath string, noteTitleMap map[string]string) 
 		stats.NotesExported++
 	}
 
-	outputPath := filepath.Join(DirExport, fmt.Sprintf("anki_cards_%s.apkg", deckName))
+	outputPath := filepath.Join(DirExport, fmt.Sprintf("anki_cards_%s.apkg", deck.Name))
 	err = pkg.WriteToFile(outputPath)
 	if err != nil {
 		return stats, "", fmt.Errorf("failed to write package: %w", err)
