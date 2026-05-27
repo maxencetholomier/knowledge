@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"kl/pkg/anki"
+	"kl/pkg/files"
 	"os"
 	"path/filepath"
 	"sort"
@@ -39,7 +40,7 @@ Lines starting with # are treated as comments and ignored. Inline comments are a
 
 		printDeckFilesToExport(deckFiles)
 
-		if err := createExportDir(); err != nil {
+		if err := files.EnsureDir(DirExport); err != nil {
 			return err
 		}
 
@@ -52,15 +53,6 @@ Lines starting with # are treated as comments and ignored. Inline comments are a
 
 		return nil
 	},
-}
-
-func createExportDir() error {
-	if _, err := os.Stat(DirExport); os.IsNotExist(err) {
-		if err := os.Mkdir(DirExport, 0755); err != nil {
-			return fmt.Errorf("failed to create export directory: %w", err)
-		}
-	}
-	return nil
 }
 
 func printDeckFilesToExport(deckFiles map[string]string) {

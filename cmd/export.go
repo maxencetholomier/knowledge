@@ -15,8 +15,8 @@ var exportCmd = &cobra.Command{
 	Short: "Export notes to classical markdown format",
 	Long:  `Export all notes and associated resources to classical markdown format with readable filenames based on note headers in the export directory.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if _, err := os.Stat(DirExport); os.IsNotExist(err) {
-			os.Mkdir(DirExport, 0755)
+		if err := files.EnsureDir(DirExport); err != nil {
+			return err
 		}
 
 		if err := exportMarkdownFiles(); err != nil {
