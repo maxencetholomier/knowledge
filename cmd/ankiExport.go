@@ -81,7 +81,7 @@ Lines starting with # are treated as comments and ignored. Inline comments are a
 			return nil
 		}
 
-		printExportStats(deckResults, totalExported, totalSkipped)
+		printAnkiExportSummary(deckResults, totalExported, totalSkipped)
 
 		return nil
 	},
@@ -243,7 +243,7 @@ type deckExportResult struct {
 	OutputPath string
 }
 
-func printExportStats(deckResults map[string]deckExportResult, totalExported, totalSkipped int) {
+func printAnkiExportSummary(deckResults map[string]deckExportResult, totalExported, totalSkipped int) {
 	fmt.Printf("\nExport complete!\n")
 	fmt.Printf("- Decks exported: %d\n", len(deckResults))
 
