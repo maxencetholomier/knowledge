@@ -13,6 +13,23 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type deckFile struct {
+	Name string
+	Path string
+}
+
+type deckStats struct {
+	NotesProcessed int
+	NotesExported  int
+	NotesSkipped   int
+	ImagesAdded    int
+}
+
+type deckExportResult struct {
+	Stats      deckStats
+	OutputPath string
+}
+
 var ankiExportCmd = &cobra.Command{
 	Use:   "export",
 	Short: "Export selected notes to Anki package (.apkg)",
@@ -124,18 +141,6 @@ func init() {
 	ankiCmd.AddCommand(ankiExportCmd)
 }
 
-type deckFile struct {
-	Name string
-	Path string
-}
-
-type deckStats struct {
-	NotesProcessed int
-	NotesExported  int
-	NotesSkipped   int
-	ImagesAdded    int
-}
-
 func getDeckFiles(dir string) ([]deckFile, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
@@ -240,11 +245,6 @@ func processDeck(deck deckFile, noteTitleMap map[string]string) (deckStats, stri
 	}
 
 	return stats, outputPath, nil
-}
-
-type deckExportResult struct {
-	Stats      deckStats
-	OutputPath string
 }
 
 func printAnkiExportSummary(deckResults map[string]deckExportResult) {
