@@ -43,7 +43,7 @@ func ResolveFileName(args []string, dirCache string) (string, error) {
 		}
 
 		fmt.Println("line:" + line)
-		fileName = strings.Split(line, " ")[0]
+		fileName = strings.Split(line, " ")[1]
 	}
 
 	return fileName, nil

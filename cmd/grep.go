@@ -5,6 +5,7 @@ import (
 	"kl/pkg/output"
 	"kl/pkg/search"
 	"kl/pkg/ui"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -52,10 +53,12 @@ func printResultsGrep(results []search.SearchResult) error {
 			return err
 		}
 
+		timestamp := strings.TrimSuffix(result.File.Name, ".md")
+		line := timestamp + " " + result.Match
 		if allResults == "" {
-			allResults = result.Match
+			allResults = line
 		} else {
-			allResults = allResults + "\n" + result.Match
+			allResults = allResults + "\n" + line
 		}
 	}
 
