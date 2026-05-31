@@ -48,7 +48,7 @@ func presearchGrep(args []string) ([]byte, error) {
 func printResultsGrep(results []search.SearchResult) error {
 	var allResults string
 	for i, result := range results {
-		err := output.PrintToStdout(result.Match, i+1)
+		err := output.PrintToStdout(result.Match, i+1, len(results))
 		if err != nil {
 			return err
 		}

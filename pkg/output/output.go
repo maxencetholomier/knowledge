@@ -4,13 +4,14 @@ import (
 	"bufio"
 	"fmt"
 	"kl/pkg/config"
+	"math"
 	"os"
-	"strconv"
 	"strings"
 )
 
-func PrintToStdout(line string, lineNumber int) error {
-	fmt.Println(strconv.Itoa(lineNumber) + " " + line)
+func PrintToStdout(line string, lineNumber int, total int) error {
+	width := int(math.Log10(float64(total))) + 1
+	fmt.Printf("%*d %s\n", width, lineNumber, line)
 	return nil
 }
 
