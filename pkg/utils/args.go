@@ -18,8 +18,9 @@ func ResolveFileName(args []string, dirCache string) (string, error) {
 	var fileName string
 
 	if len(args) == 1 {
-		if len(args[0]) == 14 {
-			fileName = args[0]
+		trimmed := strings.TrimSuffix(args[0], ".md")
+		if len(trimmed) == 14 {
+			fileName = trimmed
 		} else {
 			lineNumber, err := strconv.Atoi(args[0])
 			if err != nil {
