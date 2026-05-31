@@ -24,20 +24,10 @@ var listCmd = &cobra.Command{
 			timestamp := strings.TrimSuffix(file.Name, ".md")
 
 			title, err := file.GetTitle()
-			if err != nil {
+			if err != nil || strings.TrimSpace(title) == "" {
 				fmt.Println(timestamp)
 			} else {
-				title = strings.TrimSuffix(title, "\n")
-				if strings.HasPrefix(title, "#") {
-					title = strings.TrimPrefix(title, "#")
-					title = strings.TrimSpace(title)
-				}
-
-				if title != "" {
-					fmt.Printf("%s - %s\n", timestamp, title)
-				} else {
-					fmt.Println(timestamp)
-				}
+				fmt.Printf("%s %s\n", timestamp, strings.TrimSuffix(title, "\n"))
 			}
 		}
 		return nil

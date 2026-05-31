@@ -45,9 +45,9 @@ Use --local to show only notes not in Anki, --anki to show only notes not local.
 				fmt.Printf("Only local (%d):\n", len(onlyLocal))
 				for _, ts := range onlyLocal {
 					if title := localNotes[ts]; title != "" {
-						fmt.Printf("  • %s.md # %s\n", ts, title)
+						fmt.Printf("   %s.md # %s\n", ts, title)
 					} else {
-						fmt.Printf("  • %s.md\n", ts)
+						fmt.Printf("   %s.md\n", ts)
 					}
 				}
 			}
@@ -65,7 +65,7 @@ Use --local to show only notes not in Anki, --anki to show only notes not local.
 			} else {
 				fmt.Printf("Only in Anki (%d):\n", len(onlyAnki))
 				for _, ts := range onlyAnki {
-					fmt.Printf("  • %s.md\n", ts)
+					fmt.Printf("  %s.md\n", ts)
 				}
 			}
 		}
