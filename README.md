@@ -103,6 +103,8 @@ Tools → Options → Web Clipper → Enable Web Clipper
 
 ## Usage
 
+For a quick, hands-on walkthrough, see the [Comprehensive Example](./docs/comprehensive_exemple.md).
+
 For detailed usage examples and workflows, see [Usage Guide](./docs/usage.md).
 
 ## Roadmap
