@@ -21,6 +21,8 @@ kl [command] --help
   - [`grep`](#grep)
   - [`edit`](#edit)
   - [`delete`](#delete)
+  - [`clean`](#clean)
+  - [`translate`](#translate)
   - [Useful flags](#useful-flags)
 - [Media](#media)
   - [`image`](#image)
@@ -31,6 +33,7 @@ kl [command] --help
   - [`man`](#man)
 - [Spaced Repetition](#spaced-repetition)
   - [`anki export`](#anki-export)
+  - [`anki diff`](#anki-diff)
 - [Cloud Synchronization](#cloud-synchronization)
   - [`joplin list`](#joplin-list)
   - [`joplin diff`](#joplin-diff)
@@ -105,6 +108,28 @@ Examples:
 - `kl delete 1` - Delete the first result from the last search/find
 - `kl delete 20240315143022` - Delete note with timestamp 20240315143022.md directly
 
+#### `clean`
+
+Remove empty notes (no content beyond the title) and image files that are not referenced by any notes.
+
+```bash
+kl clean
+```
+
+Lists the empty notes and unlinked images found, then asks for confirmation before deleting them.
+
+#### `translate`
+
+Convert timestamp(s) to the format `timestamp # Title`.
+
+```bash
+kl translate [timestamp...]
+```
+
+Accepts timestamps from arguments or stdin (one per line), with or without the `.md` extension.
+
+- `--anki` or `-a`: Output format with `.md` extension (for Anki export)
+
 #### Useful flags
 
 Find and grep support :
@@ -141,6 +166,8 @@ kl image
 
 This command takes a screenshot using the configured screenshot tool and creates a new note with the image embedded.
 
+- `--new-terminal`: Open the screenshot tool in a new terminal
+
 #### `video`
 
 Create a new note with video recording using screenrecord. For detailed setup instructions, see the [video recording guide](./video_recording.md).
@@ -151,6 +178,8 @@ kl video
 
 Creates a new note with video recording capability using the configured screen recording tool.
 
+- `--new-terminal`: Open the screen recording tool in a new terminal
+
 #### `schema`
 
 Create a new note with diagram using the configured diagram tool.
@@ -160,6 +189,8 @@ kl schema
 ```
 
 Opens the diagram tool configured in your `~/.config/kl/config.json` (by default Inkscape) for creating diagrams and embeds the result in a new note.
+
+- `--new-terminal` or `-t`: Open the diagram tool in a new terminal
 
 ### Local Export
 
@@ -182,6 +213,9 @@ kl man [OUTPUT_DIR]
 ```
 
 Creates manual pages that can be installed in your system's man page directories.
+If no output directory is provided, man pages are generated in `/tmp/kl-man/`.
+
+- `--quiet` or `-q`: Suppress output messages
 
 **Note**: Man pages are automatically generated and installed during the installation process via `install.sh`.
 
@@ -220,6 +254,19 @@ This command converts your knowledge notes into Anki flashcards and packages the
 - Custom CSS styling for optimal readability
 - Organizes cards into topic-based decks
 
+#### `anki diff`
+
+Show differences between local notes and the decks defined by your `anki_export_*` files.
+
+```bash
+kl anki diff
+```
+
+By default shows both local-only notes and Anki-only notes.
+
+- `--local` or `-l`: Show only notes not in Anki
+- `--anki` or `-a`: Show only Anki notes not found locally
+
 
 ### Cloud Synchronization
 
@@ -252,6 +299,9 @@ Shows:
 - **Only in Joplin** - Notes that exist in Joplin but not locally
 - **Summary** - Count of notes in each category
 
+Flags:
+- `--debug`: Show detailed content comparison for debugging
+
 #### `joplin import`
 
 Import notes from Joplin application into the knowledge base.
@@ -260,6 +310,8 @@ Import notes from Joplin application into the knowledge base.
 kl joplin import
 ```
 
+- `--notebook` or `-n`: Specify the notebook to import notes from
+
 #### `joplin export`
 
 Export notes from the knowledge base to Joplin application.
@@ -267,6 +319,8 @@ Export notes from the knowledge base to Joplin application.
 ```bash
 kl joplin export
 ```
+
+- `--notebook` or `-n`: Specify the notebook to export notes to
 
 #### `joplin merge`
 
@@ -277,6 +331,11 @@ Synchronize notes between the knowledge base and Joplin by merging changes bidir
 ```bash
 kl joplin merge
 ```
+
+- `--notebook` or `-n`: Specify the notebook to move local notes to when pushing to Joplin
+- `--diff`: Show diff of changes for each file
+- `--force-local`: Push all notes from local to Joplin, ignoring timestamps
+- `--force-joplin`: Pull all notes from Joplin to local, ignoring timestamps
 
 #### `joplin clean`
 

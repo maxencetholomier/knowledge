@@ -30,9 +30,9 @@ type mergeAction struct {
 var joplinMergeCmd = &cobra.Command{
 	Use:   "merge",
 	Short: "Merge notes with Joplin bidirectionally",
-	Long: `Synchronize notes between the knowledge base and Joplin by merging changes bidirectionally based on modification fileTimestamps.
+	Long: `Synchronize notes between the knowledge base and Joplin by merging changes bidirectionally based on modification timestamps.
 
-IMPORTANT: The merge process uses modification fileTimestamps to determine which version is newer.
+IMPORTANT: The merge process uses modification timestamps to determine which version is newer.
 The newest version will be preserved and the older version will be overwritten.
 If you have modified the same note both locally and in the cloud, there is no conflict resolution -
 data loss may occur as the older version will be replaced by the newer one.`,
@@ -290,7 +290,7 @@ func showDiff(localContent, joplinAsLocal string, maxLines int) {
 func init() {
 	joplinMergeCmd.Flags().StringVarP(&joplinMergeNotebook, "notebook", "n", "", "specify the notebook to move local notes to when pushing to Joplin")
 	joplinMergeCmd.Flags().BoolVar(&joplinMergeShowDiff, "diff", false, "show diff of changes for each file")
-	joplinMergeCmd.Flags().BoolVar(&joplinMergeForceLocal, "force-local", false, "push all notes from local to Joplin, ignoring fileTimestamps")
-	joplinMergeCmd.Flags().BoolVar(&joplinMergeForceJoplin, "force-joplin", false, "pull all notes from Joplin to local, ignoring fileTimestamps")
+	joplinMergeCmd.Flags().BoolVar(&joplinMergeForceLocal, "force-local", false, "push all notes from local to Joplin, ignoring timestamps")
+	joplinMergeCmd.Flags().BoolVar(&joplinMergeForceJoplin, "force-joplin", false, "pull all notes from Joplin to local, ignoring timestamps")
 	joplinCmd.AddCommand(joplinMergeCmd)
 }
