@@ -2,8 +2,8 @@ package cmd
 
 import (
 	"fmt"
-	"kl/pkg/files"
-	"kl/pkg/prompt"
+	"github.com/maxencetholomier/knowledge/pkg/files"
+	"github.com/maxencetholomier/knowledge/pkg/prompt"
 	"os"
 	"path/filepath"
 	"regexp"

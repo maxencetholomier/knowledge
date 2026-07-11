@@ -2,8 +2,8 @@ package files
 
 import (
 	"fmt"
-	"kl/pkg/config"
-	"kl/pkg/utils"
+	"github.com/maxencetholomier/knowledge/pkg/config"
+	"github.com/maxencetholomier/knowledge/pkg/utils"
 	"os"
 	"os/exec"
 	"strings"

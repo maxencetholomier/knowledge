@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"fmt"
-	"kl/pkg/config"
+	"github.com/maxencetholomier/knowledge/pkg/config"
 	"os"
 
 	"github.com/spf13/cobra"

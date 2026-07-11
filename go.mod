@@ -1,4 +1,4 @@
-module kl
+module github.com/maxencetholomier/knowledge
 
 go 1.24.1
 

@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"fmt"
-	"kl/pkg/joplin"
+	"github.com/maxencetholomier/knowledge/pkg/joplin"
 
 	"github.com/spf13/cobra"
 )

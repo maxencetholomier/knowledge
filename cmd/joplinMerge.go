@@ -2,9 +2,9 @@ package cmd
 
 import (
 	"fmt"
-	"kl/pkg/files"
-	"kl/pkg/joplin"
-	"kl/pkg/prompt"
+	"github.com/maxencetholomier/knowledge/pkg/files"
+	"github.com/maxencetholomier/knowledge/pkg/joplin"
+	"github.com/maxencetholomier/knowledge/pkg/prompt"
 	"os"
 	"strings"
 	"time"

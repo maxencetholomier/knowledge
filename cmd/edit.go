@@ -2,8 +2,8 @@ package cmd
 
 import (
 	"fmt"
-	"kl/pkg/files"
-	"kl/pkg/utils"
+	"github.com/maxencetholomier/knowledge/pkg/files"
+	"github.com/maxencetholomier/knowledge/pkg/utils"
 	"os"
 
 	"github.com/spf13/cobra"

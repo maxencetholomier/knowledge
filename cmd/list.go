@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"fmt"
-	"kl/pkg/files"
+	"github.com/maxencetholomier/knowledge/pkg/files"
 	"strings"
 
 	"github.com/spf13/cobra"

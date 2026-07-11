@@ -3,7 +3,7 @@ package cmd
 import (
 	"bufio"
 	"fmt"
-	"kl/pkg/files"
+	"github.com/maxencetholomier/knowledge/pkg/files"
 	"os"
 	"path/filepath"
 	"regexp"

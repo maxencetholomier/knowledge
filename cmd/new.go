@@ -3,8 +3,8 @@ package cmd
 import (
 	"time"
 
-	"kl/pkg/files"
-	"kl/pkg/utils"
+	"github.com/maxencetholomier/knowledge/pkg/files"
+	"github.com/maxencetholomier/knowledge/pkg/utils"
 
 	"github.com/spf13/cobra"
 )

@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"fmt"
-	"kl/pkg/prompt"
+	"github.com/maxencetholomier/knowledge/pkg/prompt"
 	"os"
 	"sort"
 	"strings"

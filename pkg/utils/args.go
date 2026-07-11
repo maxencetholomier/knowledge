@@ -2,7 +2,7 @@ package utils
 
 import (
 	"fmt"
-	"kl/pkg/output"
+	"github.com/maxencetholomier/knowledge/pkg/output"
 	"os"
 	"strconv"
 	"strings"

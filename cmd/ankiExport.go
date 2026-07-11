@@ -3,8 +3,8 @@ package cmd
 import (
 	"bufio"
 	"fmt"
-	"kl/pkg/anki"
-	"kl/pkg/files"
+	"github.com/maxencetholomier/knowledge/pkg/anki"
+	"github.com/maxencetholomier/knowledge/pkg/files"
 	"os"
 	"path/filepath"
 	"sort"

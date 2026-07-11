@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"kl/pkg/utils"
+	"github.com/maxencetholomier/knowledge/pkg/utils"
 	"os"
 
 	"github.com/spf13/cobra"

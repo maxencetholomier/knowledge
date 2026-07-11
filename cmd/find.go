@@ -1,10 +1,10 @@
 package cmd
 
 import (
-	"kl/pkg/files"
-	"kl/pkg/output"
-	"kl/pkg/search"
-	"kl/pkg/ui"
+	"github.com/maxencetholomier/knowledge/pkg/files"
+	"github.com/maxencetholomier/knowledge/pkg/output"
+	"github.com/maxencetholomier/knowledge/pkg/search"
+	"github.com/maxencetholomier/knowledge/pkg/ui"
 	"strings"
 
 	"github.com/spf13/cobra"

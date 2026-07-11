@@ -3,7 +3,7 @@ package joplin
 import (
 	"encoding/json"
 	"fmt"
-	"kl/pkg/config"
+	"github.com/maxencetholomier/knowledge/pkg/config"
 )
 
 func GetNotebookInfo(notebookName string) (string, string, error) {
@@ -65,12 +65,12 @@ func getNotebookField(id string, field string) (string, error) {
 
 	value, ok := data[field]
 	if !ok {
-		return "", fmt.Errorf("key " + field + " not found in JSON")
+		return "", fmt.Errorf("key %s not found in JSON", field)
 	}
 
 	stringValue, ok := value.(string)
 	if !ok {
-		return "", fmt.Errorf("value for key " + field + " is not a string")
+		return "", fmt.Errorf("value for key %s is not a string", field)
 	}
 	return stringValue, nil
 }

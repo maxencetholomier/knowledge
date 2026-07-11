@@ -1,7 +1,7 @@
 package search
 
 import (
-	"kl/pkg/files"
+	"github.com/maxencetholomier/knowledge/pkg/files"
 	"os/exec"
 	"regexp"
 )

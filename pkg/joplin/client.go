@@ -2,8 +2,8 @@ package joplin
 
 import (
 	"bytes"
-	"kl/pkg/config"
-	"kl/pkg/httpclient"
+	"github.com/maxencetholomier/knowledge/pkg/config"
+	"github.com/maxencetholomier/knowledge/pkg/httpclient"
 	"strings"
 )
 
