@@ -12,59 +12,7 @@ For naming and file organization, see the [Conventions Guide](./docs/conventions
 
 ## System Architecture
 
-Knowledge operates as a local-first system. The cloud integration is the "icing on the cake".
-
-On your computer, it manages markdown notes in your filesystem (creation, research, deletion, etc.) and provides two distinct integrations:
-
-- **Bidirectional synchronization** (import and export) with [Joplin](https://github.com/laurent22/joplin) Desktop
-- **Export** to [Anki](https://apps.ankiweb.net/) via `.apkg` packages
-
-### Bidirectional synchronization with [Joplin](https://github.com/laurent22/joplin)
-
-The [Joplin](https://github.com/laurent22/joplin) integration enables bidirectional synchronization between your local Knowledge notes and [Joplin](https://github.com/laurent22/joplin)'s ecosystem, providing access across all your devices.
-
-```mermaid
-graph LR
-    subgraph Version_Control[Version Control]
-        GL[Github/Gitlab]
-    end
-
-    subgraph Computer
-        subgraph Terminal
-            K[Knowledge CLI]
-            G[Git]
-            K --- G
-        end
-        JD[Joplin Desktop]
-        K <--> JD
-    end
-
-    subgraph Joplin_Cloud[Joplin Cloud]
-        JC[Joplin Cloud]
-    end
-
-    subgraph Mobile
-        JM[Joplin Mobile]
-    end
-
-    JD <--> JC
-    JM <--> JC
-    G <--> GL
-```
-
-### Export to [Anki](https://apps.ankiweb.net/)
-
-The [Anki](https://apps.ankiweb.net/) integration enables one-way export of notes for spaced repetition learning.
-
-```mermaid
-graph LR
-    subgraph Computer
-        K[Knowledge CLI]
-        AD[Anki Desktop]
-        K -->|export .apkg| AD
-    end
-```
-
+See the [Architecture Guide](./docs/architecture.md) for how Knowledge integrates with Joplin and Anki.
 
 ## Dependencies
 
@@ -82,65 +30,7 @@ graph LR
 
 ## Installation
 
-Install with Go:
-
-```bash
-go install github.com/maxencetholomier/knowledge/cmd/kl@latest
-```
-
-Make sure `$(go env GOPATH)/bin` is in your `PATH`.
-
-### Updating
-
-From a local clone (e.g. after making changes):
-
-```bash
-go install ./cmd/kl
-```
-
-From GitHub, bypassing the Go proxy cache to get the latest commit:
-
-```bash
-GOPROXY=direct go install github.com/maxencetholomier/knowledge/cmd/kl@master
-```
-
-### Shell completion
-
-Add to your `~/.bashrc`:
-
-```bash
-source <(kl completion bash)
-```
-
-Or to your `~/.zshrc`:
-
-```zsh
-source <(kl completion zsh)
-```
-
-For zsh, `compinit` must be loaded before this line (`autoload -U compinit && compinit`).
-
-For fish:
-
-```fish
-kl completion fish > ~/.config/fish/completions/kl.fish
-```
-
-### Man pages (optional)
-
-```bash
-kl man --quiet
-sudo cp /tmp/kl-man/*.1 /usr/local/man/man1/
-sudo mandb
-```
-
-### Joplin setup
-
-In [Joplin](https://github.com/laurent22/joplin), enable [Web Clipper](https://joplinapp.org/help/apps/clipper/#using-the-web-clipper-service):
-
-```
-Tools → Options → Web Clipper → Enable Web Clipper
-```
+See the [Installation Guide](./docs/installation.md) for install, update, shell completion, man pages, and Joplin setup instructions.
 
 ## Usage
 
