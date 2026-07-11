@@ -4,7 +4,7 @@ This guide details the main `kl` features.
 
 Before starting, make sure you've configured your [environment](./environnement_configuration_file.md).
 
-If you just want a quick example, check this [comprehensive example](./comprehensive_exemple.md).
+If you just want a quick example, check this [comprehensive example](./comprehensive_example.md).
 
 If the information you're searching for is not present here, try calling the help:
 

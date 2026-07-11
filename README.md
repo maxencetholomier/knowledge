@@ -34,7 +34,7 @@ See the [Installation Guide](./docs/installation.md) for install, update, shell 
 
 ## Usage
 
-For a quick, hands-on walkthrough, see the [Comprehensive Example](./docs/comprehensive_exemple.md).
+For a quick, hands-on walkthrough, see the [Comprehensive Example](./docs/comprehensive_example.md).
 
 For detailed usage examples and workflows, see [Usage Guide](./docs/usage.md).
 

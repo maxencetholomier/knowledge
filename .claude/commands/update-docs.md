@@ -12,7 +12,7 @@ For each `.go` file in `cmd/`:
 
 Read these files in full:
 - `docs/usage.md`
-- `docs/comprehensive_exemple.md`
+- `docs/comprehensive_example.md`
 - `README.md`
 - Any other `docs/*.md` file that documents commands
 
@@ -39,7 +39,7 @@ Apply all edits:
 - Update `Short`, `Long`, or `Example` strings only if they are factually inaccurate
 - Do not change code logic, only documentation strings
 
-**`docs/comprehensive_exemple.md`:**
+**`docs/comprehensive_example.md`:**
 - Update the walkthrough only if a command it uses changed its name, flags, or behavior
 - Keep the narrative style; do not turn it into reference documentation
 
