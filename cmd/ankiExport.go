@@ -122,6 +122,20 @@ func filterDeckFiles(deckFiles []deckFile, requested []string) ([]deckFile, erro
 	return filtered, nil
 }
 
+func completeDeckNames(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	deckFiles, err := getDeckFiles(DirZet)
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+
+	names := make([]string, 0, len(deckFiles))
+	for _, deck := range deckFiles {
+		names = append(names, deck.Name)
+	}
+
+	return names, cobra.ShellCompDirectiveNoFileComp
+}
+
 func importDecksIntoAnki(deckResults map[string]deckExportResult) {
 	collectionPath, err := anki.FindCollection()
 	if err != nil {
@@ -225,6 +239,7 @@ func init() {
 	ankiCmd.AddCommand(ankiExportCmd)
 	ankiExportCmd.Flags().BoolVar(&ankiNoImport, "no-import", false, "skip the import into Anki, only export .apkg files")
 	ankiExportCmd.Flags().StringSliceVar(&ankiDecks, "deck", nil, "export only the given deck(s), matching anki_export_<name> (repeatable)")
+	ankiExportCmd.RegisterFlagCompletionFunc("deck", completeDeckNames)
 }
 
 func getDeckFiles(dir string) ([]deckFile, error) {
