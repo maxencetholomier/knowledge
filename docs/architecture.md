@@ -42,7 +42,7 @@ graph LR
 
 ## Export to [Anki](https://apps.ankiweb.net/)
 
-The [Anki](https://apps.ankiweb.net/) integration enables one-way export of notes for spaced repetition learning.
+The [Anki](https://apps.ankiweb.net/) integration enables one-way export of notes for spaced repetition learning. Exported decks are imported into the Anki collection automatically using the official [anki Python library](https://dev-docs.ankiweb.net/en/latest/api-python.html) (Anki must be closed during import).
 
 ```mermaid
 graph LR

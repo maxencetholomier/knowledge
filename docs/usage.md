@@ -244,9 +244,18 @@ This command converts your knowledge notes into Anki flashcards and packages the
    kl anki export
    ```
 
-3. Import the generated `.apkg` files into Anki
+3. Decks are automatically imported into your Anki collection
+
+**Automatic import:**
+
+- Uses the official [anki Python library](https://dev-docs.ankiweb.net/en/latest/api-python.html),
+  no add-on required
+- Creates a backup in Anki's backups folder before each import
+- Skips the command entirely if Anki is running (the collection would be locked)
+- Idempotent: re-exported notes update existing cards, scheduling is preserved
 
 **Options:**
+- `--no-import`: Skip the import into Anki, only export the `.apkg` files
 - `--deck <name>`: Export only the given deck (matching `anki_export_<name>`); repeatable and accepts comma-separated values:
   ```bash
   kl anki export --deck vocabulary
@@ -260,6 +269,7 @@ This command converts your knowledge notes into Anki flashcards and packages the
 - Converts note links to styled text
 - Custom CSS styling for optimal readability
 - Organizes cards into topic-based decks
+- Automatically imports decks into your Anki collection
 
 #### `anki diff`
 

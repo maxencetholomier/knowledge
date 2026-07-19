@@ -50,9 +50,20 @@ Each deck file should contain a list of note filenames (one per line):
 
 Lines starting with # are treated as comments and ignored. Inline comments are also supported.
 
+After export, decks are automatically imported into your Anki collection using the
+official anki Python library. A backup of the collection is created in Anki's
+standard backups folder before each import. Anki must be closed during the import
+(the collection is locked while the application runs); if Anki is running, the
+command is skipped entirely. Use --no-import to only export the .apkg files.
+
 Use --deck to restrict the export to specific decks (repeatable):
   kl anki export --deck vocabulary --deck grammar`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if !ankiNoImport && anki.IsAnkiRunning() {
+			fmt.Println("Anki is running, skipping export. Close Anki and re-run, or use --no-import to only export the .apkg files.")
+			return nil
+		}
+
 		deckFiles, err := getDeckFiles(DirZet)
 		if err != nil {
 			return err
@@ -76,10 +87,15 @@ Use --deck to restrict the export to specific decks (repeatable):
 
 		printAnkiExportSummary(deckResults)
 
+		if !ankiNoImport && len(deckResults) > 0 {
+			importDecksIntoAnki(deckResults)
+		}
+
 		return nil
 	},
 }
 
+var ankiNoImport bool
 var ankiDecks []string
 
 func filterDeckFiles(deckFiles []deckFile, requested []string) ([]deckFile, error) {
@@ -104,6 +120,40 @@ func filterDeckFiles(deckFiles []deckFile, requested []string) ([]deckFile, erro
 	}
 
 	return filtered, nil
+}
+
+func importDecksIntoAnki(deckResults map[string]deckExportResult) {
+	collectionPath, err := anki.FindCollection()
+	if err != nil {
+		fmt.Printf("\nWarning: %v\nImport the .apkg files manually into Anki.\n", err)
+		return
+	}
+
+	deckNames := make([]string, 0, len(deckResults))
+	for name := range deckResults {
+		deckNames = append(deckNames, name)
+	}
+	sort.Strings(deckNames)
+
+	apkgPaths := make([]string, 0, len(deckNames))
+	for _, name := range deckNames {
+		path, err := filepath.Abs(deckResults[name].OutputPath)
+		if err != nil {
+			fmt.Printf("Warning: Failed to resolve path for deck '%s': %v\n", name, err)
+			continue
+		}
+		apkgPaths = append(apkgPaths, path)
+	}
+
+	profile := filepath.Base(filepath.Dir(collectionPath))
+	fmt.Printf("\nImporting into Anki profile '%s'...\n", profile)
+
+	if err := anki.ImportPackages(collectionPath, apkgPaths); err != nil {
+		fmt.Printf("Warning: Anki import failed: %v\nImport the .apkg files manually into Anki.\n", err)
+		return
+	}
+
+	fmt.Printf("- Imported into Anki: %d deck(s)\n", len(apkgPaths))
 }
 
 func printDeckFilesToExport(deckFiles []deckFile) {
@@ -173,6 +223,7 @@ func readNoteList(listFile string) ([]string, error) {
 
 func init() {
 	ankiCmd.AddCommand(ankiExportCmd)
+	ankiExportCmd.Flags().BoolVar(&ankiNoImport, "no-import", false, "skip the import into Anki, only export .apkg files")
 	ankiExportCmd.Flags().StringSliceVar(&ankiDecks, "deck", nil, "export only the given deck(s), matching anki_export_<name> (repeatable)")
 }
 
