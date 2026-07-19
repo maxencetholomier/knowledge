@@ -48,9 +48,17 @@ Each deck file should contain a list of note filenames (one per line):
   20240101120000.md
   20240102130000.md
 
-Lines starting with # are treated as comments and ignored. Inline comments are also supported.`,
+Lines starting with # are treated as comments and ignored. Inline comments are also supported.
+
+Use --deck to restrict the export to specific decks (repeatable):
+  kl anki export --deck vocabulary --deck grammar`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		deckFiles, err := getDeckFiles(DirZet)
+		if err != nil {
+			return err
+		}
+
+		deckFiles, err = filterDeckFiles(deckFiles, ankiDecks)
 		if err != nil {
 			return err
 		}
@@ -70,6 +78,32 @@ Lines starting with # are treated as comments and ignored. Inline comments are a
 
 		return nil
 	},
+}
+
+var ankiDecks []string
+
+func filterDeckFiles(deckFiles []deckFile, requested []string) ([]deckFile, error) {
+	if len(requested) == 0 {
+		return deckFiles, nil
+	}
+
+	byName := make(map[string]deckFile, len(deckFiles))
+	available := make([]string, 0, len(deckFiles))
+	for _, deck := range deckFiles {
+		byName[deck.Name] = deck
+		available = append(available, deck.Name)
+	}
+
+	var filtered []deckFile
+	for _, name := range requested {
+		deck, exists := byName[name]
+		if !exists {
+			return nil, fmt.Errorf("deck '%s' not found, available decks: %s", name, strings.Join(available, ", "))
+		}
+		filtered = append(filtered, deck)
+	}
+
+	return filtered, nil
 }
 
 func printDeckFilesToExport(deckFiles []deckFile) {
@@ -139,6 +173,7 @@ func readNoteList(listFile string) ([]string, error) {
 
 func init() {
 	ankiCmd.AddCommand(ankiExportCmd)
+	ankiExportCmd.Flags().StringSliceVar(&ankiDecks, "deck", nil, "export only the given deck(s), matching anki_export_<name> (repeatable)")
 }
 
 func getDeckFiles(dir string) ([]deckFile, error) {

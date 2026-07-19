@@ -244,7 +244,14 @@ This command converts your knowledge notes into Anki flashcards and packages the
    kl anki export
    ```
 
-3. Import the generated `.apkg` file into Anki
+3. Import the generated `.apkg` files into Anki
+
+**Options:**
+- `--deck <name>`: Export only the given deck (matching `anki_export_<name>`); repeatable and accepts comma-separated values:
+  ```bash
+  kl anki export --deck vocabulary
+  kl anki export --deck vocabulary --deck grammar
+  ```
 
 **Features:**
 - Converts note titles to flashcard fronts
