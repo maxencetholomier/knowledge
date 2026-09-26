@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/maxencetholomier/knowledge/pkg/anki"
 	"github.com/maxencetholomier/knowledge/pkg/files"
+	"github.com/maxencetholomier/knowledge/pkg/prompt"
 	"os"
 	"path/filepath"
 	"sort"
@@ -28,6 +29,7 @@ type deckStats struct {
 type deckExportResult struct {
 	Stats      deckStats
 	OutputPath string
+	Timestamps []string
 }
 
 var ankiExportCmd = &cobra.Command{
@@ -55,6 +57,11 @@ official anki Python library. A backup of the collection is created in Anki's
 standard backups folder before each import. Anki must be closed during the import
 (the collection is locked while the application runs); if Anki is running, the
 command is skipped entirely. Use --no-import to only export the .apkg files.
+
+The deck file is the source of truth: cards of an exported deck whose note is no
+longer listed, or no longer present locally, are deleted from the collection after
+confirmation. Only cards created by kl are considered. Use --yes to skip the
+confirmation.
 
 Use --deck to restrict the export to specific decks (repeatable):
   kl anki export --deck vocabulary --deck grammar`,
@@ -97,6 +104,7 @@ Use --deck to restrict the export to specific decks (repeatable):
 
 var ankiNoImport bool
 var ankiDecks []string
+var ankiAssumeYes bool
 
 func filterDeckFiles(deckFiles []deckFile, requested []string) ([]deckFile, error) {
 	if len(requested) == 0 {
@@ -136,6 +144,15 @@ func completeDeckNames(cmd *cobra.Command, args []string, toComplete string) ([]
 	return names, cobra.ShellCompDirectiveNoFileComp
 }
 
+func sortedDeckNames(deckResults map[string]deckExportResult) []string {
+	names := make([]string, 0, len(deckResults))
+	for name := range deckResults {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
+}
+
 func importDecksIntoAnki(deckResults map[string]deckExportResult) {
 	collectionPath, err := anki.FindCollection()
 	if err != nil {
@@ -143,11 +160,7 @@ func importDecksIntoAnki(deckResults map[string]deckExportResult) {
 		return
 	}
 
-	deckNames := make([]string, 0, len(deckResults))
-	for name := range deckResults {
-		deckNames = append(deckNames, name)
-	}
-	sort.Strings(deckNames)
+	deckNames := sortedDeckNames(deckResults)
 
 	apkgPaths := make([]string, 0, len(deckNames))
 	for _, name := range deckNames {
@@ -163,11 +176,69 @@ func importDecksIntoAnki(deckResults map[string]deckExportResult) {
 	fmt.Printf("\nImporting into Anki profile '%s'...\n", profile)
 
 	if err := anki.ImportPackages(collectionPath, apkgPaths); err != nil {
-		fmt.Printf("Warning: Anki import failed: %v\nImport the .apkg files manually into Anki.\n", err)
+		fmt.Printf("Warning: Anki import failed: %v\n", err)
+		fmt.Println("Import the .apkg files manually into Anki, then run 'kl anki clean' to drop orphan notes.")
 		return
 	}
 
 	fmt.Printf("- Imported into Anki: %d deck(s)\n", len(apkgPaths))
+
+	specs := make([]anki.DeckSpec, 0, len(deckResults))
+	for _, name := range deckNames {
+		specs = append(specs, anki.DeckSpec{Name: name, Timestamps: deckResults[name].Timestamps})
+	}
+
+	if err := pruneAnkiDecks(collectionPath, specs); err != nil {
+		fmt.Printf("Warning: %v\n", err)
+	}
+}
+
+func pruneAnkiDecks(collectionPath string, specs []anki.DeckSpec) error {
+	orphans, err := anki.FindOrphanNotes(collectionPath, specs)
+	if err != nil {
+		return fmt.Errorf("failed to look for orphan notes in Anki: %w", err)
+	}
+
+	orphans = dedupeOrphans(orphans)
+	if len(orphans) == 0 {
+		fmt.Println("- No orphan note in Anki")
+		return nil
+	}
+
+	fmt.Printf("\nFound %d Anki note(s) without a local note:\n", len(orphans))
+	noteIDs := make([]int64, 0, len(orphans))
+	for _, orphan := range orphans {
+		fmt.Printf("  • %s — %s (deck: %s)\n", orphan.Timestamp, orphan.Front, orphan.Deck)
+		noteIDs = append(noteIDs, orphan.ID)
+	}
+
+	if !ankiAssumeYes {
+		confirmed, err := prompt.Confirm("Do you want to remove these notes from Anki?")
+		if err != nil || !confirmed {
+			fmt.Println("Orphan notes kept.")
+			return nil
+		}
+	}
+
+	if err := anki.RemoveNotes(collectionPath, noteIDs); err != nil {
+		return fmt.Errorf("failed to remove orphan notes from Anki: %w", err)
+	}
+
+	fmt.Printf("- Removed from Anki: %d note(s)\n", len(noteIDs))
+	return nil
+}
+
+func dedupeOrphans(orphans []anki.OrphanNote) []anki.OrphanNote {
+	seen := make(map[int64]bool, len(orphans))
+	var unique []anki.OrphanNote
+	for _, orphan := range orphans {
+		if seen[orphan.ID] {
+			continue
+		}
+		seen[orphan.ID] = true
+		unique = append(unique, orphan)
+	}
+	return unique
 }
 
 func printDeckFilesToExport(deckFiles []deckFile) {
@@ -199,15 +270,15 @@ func exportDeckFiles(deckFiles []deckFile) (map[string]deckExportResult, error) 
 }
 
 func exportDeckFile(deck deckFile, noteTitleMap map[string]string) (*deckExportResult, error) {
-	stats, outputPath, err := processDeck(deck, noteTitleMap)
+	result, err := processDeck(deck, noteTitleMap)
 	if err != nil {
 		return nil, err
 	}
-	if stats.NotesProcessed == 0 {
+	if result.Stats.NotesProcessed == 0 {
 		fmt.Printf("Warning: Deck '%s' has no notes, skipping\n", deck.Name)
 		return nil, nil
 	}
-	return &deckExportResult{Stats: stats, OutputPath: outputPath}, nil
+	return result, nil
 }
 
 func readNoteList(listFile string) ([]string, error) {
@@ -239,6 +310,7 @@ func init() {
 	ankiCmd.AddCommand(ankiExportCmd)
 	ankiExportCmd.Flags().BoolVar(&ankiNoImport, "no-import", false, "skip the import into Anki, only export .apkg files")
 	ankiExportCmd.Flags().StringSliceVar(&ankiDecks, "deck", nil, "export only the given deck(s), matching anki_export_<name> (repeatable)")
+	ankiExportCmd.Flags().BoolVarP(&ankiAssumeYes, "yes", "y", false, "remove orphan Anki notes without asking for confirmation")
 	ankiExportCmd.RegisterFlagCompletionFunc("deck", completeDeckNames)
 }
 
@@ -282,27 +354,27 @@ func getDeckFiles(dir string) ([]deckFile, error) {
 	return deckFiles, nil
 }
 
-func processDeck(deck deckFile, noteTitleMap map[string]string) (deckStats, string, error) {
-	stats := deckStats{}
+func processDeck(deck deckFile, noteTitleMap map[string]string) (*deckExportResult, error) {
+	result := &deckExportResult{}
 
 	noteFiles, err := readNoteList(deck.Path)
 	if err != nil {
-		return stats, "", fmt.Errorf("failed to read note list: %w", err)
+		return nil, fmt.Errorf("failed to read note list: %w", err)
 	}
 
-	stats.NotesProcessed = len(noteFiles)
+	result.Stats.NotesProcessed = len(noteFiles)
 
 	if len(noteFiles) == 0 {
-		return stats, "", nil
+		return result, nil
 	}
 
 	pkg, err := anki.CreatePackage()
 	if err != nil {
-		return stats, "", fmt.Errorf("failed to create package: %w", err)
+		return nil, fmt.Errorf("failed to create package: %w", err)
 	}
 
 	if err := pkg.CreateDeck(deck.Name); err != nil {
-		return stats, "", fmt.Errorf("failed to create deck: %w", err)
+		return nil, fmt.Errorf("failed to create deck: %w", err)
 	}
 
 	fmt.Printf("Processing deck: %s (%d notes)\n", deck.Name, len(noteFiles))
@@ -312,40 +384,41 @@ func processDeck(deck deckFile, noteTitleMap map[string]string) (deckStats, stri
 
 		if _, err := os.Stat(notePath); os.IsNotExist(err) {
 			fmt.Printf("  Warning: Note file %s not found, skipping\n", noteFile)
-			stats.NotesSkipped++
+			result.Stats.NotesSkipped++
 			continue
 		}
+
+		result.Timestamps = append(result.Timestamps, strings.TrimSuffix(noteFile, ".md"))
 
 		fmt.Printf("  Processing note %d of %d: %s\n", i+1, len(noteFiles), noteFile)
 
 		note, mediaFiles, err := anki.ConvertNote(notePath, noteTitleMap)
 		if err != nil {
 			fmt.Printf("  Warning: Failed to process %s: %v, skipping\n", noteFile, err)
-			stats.NotesSkipped++
+			result.Stats.NotesSkipped++
 			continue
 		}
 
 		for _, media := range mediaFiles {
 			pkg.AddMedia(media.Filename, media.Data)
-			stats.ImagesAdded++
+			result.Stats.ImagesAdded++
 		}
 
 		if err := pkg.AddNote(deck.Name, note); err != nil {
 			fmt.Printf("  Warning: Failed to add note to deck: %v, skipping\n", err)
-			stats.NotesSkipped++
+			result.Stats.NotesSkipped++
 			continue
 		}
 
-		stats.NotesExported++
+		result.Stats.NotesExported++
 	}
 
-	outputPath := filepath.Join(DirExport, fmt.Sprintf("anki_cards_%s.apkg", deck.Name))
-	err = pkg.WriteToFile(outputPath)
-	if err != nil {
-		return stats, "", fmt.Errorf("failed to write package: %w", err)
+	result.OutputPath = filepath.Join(DirExport, fmt.Sprintf("anki_cards_%s.apkg", deck.Name))
+	if err := pkg.WriteToFile(result.OutputPath); err != nil {
+		return nil, fmt.Errorf("failed to write package: %w", err)
 	}
 
-	return stats, outputPath, nil
+	return result, nil
 }
 
 func printAnkiExportSummary(deckResults map[string]deckExportResult) {
@@ -364,13 +437,7 @@ func printAnkiExportSummary(deckResults map[string]deckExportResult) {
 	fmt.Printf("\nExport complete!\n")
 	fmt.Printf("- Decks exported: %d\n", len(deckResults))
 
-	deckNames := make([]string, 0, len(deckResults))
-	for name := range deckResults {
-		deckNames = append(deckNames, name)
-	}
-	sort.Strings(deckNames)
-
-	for _, name := range deckNames {
+	for _, name := range sortedDeckNames(deckResults) {
 		result := deckResults[name]
 		fmt.Printf("  - %s: %d notes → %s\n", name, result.Stats.NotesExported, result.OutputPath)
 	}
