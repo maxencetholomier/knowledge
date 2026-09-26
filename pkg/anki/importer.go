@@ -2,6 +2,7 @@ package anki
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -95,17 +96,20 @@ func FindCollection() (string, error) {
 	return newest, nil
 }
 
-func ImportPackages(collectionPath string, apkgPaths []string) error {
+func runAnkiScript(script string, stdin string, args []string, stdout io.Writer) error {
 	python, err := findAnkiPython()
 	if err != nil {
 		return err
 	}
 
-	args := append([]string{"-", collectionPath}, apkgPaths...)
-	cmd := exec.Command(python, args...)
-	cmd.Stdin = strings.NewReader(importScript)
-	cmd.Stdout = os.Stdout
+	cmd := exec.Command(python, append([]string{"-c", script}, args...)...)
+	cmd.Stdin = strings.NewReader(stdin)
+	cmd.Stdout = stdout
 	cmd.Stderr = os.Stderr
 
 	return cmd.Run()
+}
+
+func ImportPackages(collectionPath string, apkgPaths []string) error {
+	return runAnkiScript(importScript, "", append([]string{collectionPath}, apkgPaths...), os.Stdout)
 }
