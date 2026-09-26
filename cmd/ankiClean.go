@@ -2,131 +2,72 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/maxencetholomier/knowledge/pkg/prompt"
 	"os"
-	"sort"
+	"path/filepath"
 	"strings"
+
+	"github.com/maxencetholomier/knowledge/pkg/anki"
 
 	"github.com/spf13/cobra"
 )
 
 var ankiCleanCmd = &cobra.Command{
 	Use:   "clean",
-	Short: "Clean deck files: drop stale entries, blank lines and duplicates, sort entries",
-	Long: `Clean anki_export_* deck files:
-  - remove lines that reference notes not present locally
-  - remove blank lines and duplicate entries
-  - trim surrounding whitespace
-  - sort lines in reverse order`,
+	Short: "Clean notes in Anki that are not present locally",
+	Long: `Remove notes from Anki that no longer have a local note listed in the anki_export_* deck files.
+
+Anki must be closed: the collection file is opened directly and stays locked while Anki runs.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		deckFiles, err := getDeckFiles(DirZet)
 		if err != nil {
 			return err
 		}
 
-		localNotes, err := getLocalList()
+		deckFiles, err = filterDeckFiles(deckFiles, ankiDecks)
 		if err != nil {
 			return err
 		}
 
-		var staleEntries []string
-		for _, deck := range deckFiles {
-			_, removed, _, err := cleanDeckLines(deck.Path, localNotes)
-			if err != nil {
-				return err
-			}
-			for _, entry := range removed {
-				staleEntries = append(staleEntries, fmt.Sprintf("%s (deck: %s)", entry, deck.Name))
-			}
+		specs, err := deckSpecsFromFiles(deckFiles)
+		if err != nil {
+			return err
 		}
 
-		if len(staleEntries) > 0 {
-			fmt.Printf("Found %d deck entries without local note:\n", len(staleEntries))
-			for _, entry := range staleEntries {
-				fmt.Printf("  • %s\n", entry)
-			}
-			confirmed, err := prompt.Confirm("Do you want to remove these entries from the deck files?")
-			if err != nil {
-				return err
-			}
-			if !confirmed {
-				fmt.Println("Operation cancelled.")
-				return nil
-			}
+		collectionPath, err := anki.FindCollection()
+		if err != nil {
+			return err
 		}
 
-		totalRemoved := 0
-		updatedDecks := 0
-		for _, deck := range deckFiles {
-			kept, removed, changed, err := cleanDeckLines(deck.Path, localNotes)
-			if err != nil {
-				return err
-			}
-			if !changed {
-				continue
-			}
-			if err := os.WriteFile(deck.Path, []byte(deckContent(kept)), 0644); err != nil {
-				return fmt.Errorf("failed to write deck file '%s': %w", deck.Name, err)
-			}
-			fmt.Printf("✓ Cleaned deck '%s' (%d stale entries removed)\n", deck.Name, len(removed))
-			totalRemoved += len(removed)
-			updatedDecks++
-		}
-
-		if updatedDecks == 0 {
-			fmt.Println("All Anki deck files are already clean.")
-			return nil
-		}
-
-		fmt.Printf("\nCleaning completed. Updated %d deck file(s), removed %d stale entries.\n", updatedDecks, totalRemoved)
-		return nil
+		return pruneAnkiDecks(collectionPath, specs)
 	},
 }
 
-func cleanDeckLines(deckPath string, localNotes map[string]string) (kept []string, removed []string, changed bool, err error) {
-	data, err := os.ReadFile(deckPath)
-	if err != nil {
-		return nil, nil, false, fmt.Errorf("failed to read deck file: %w", err)
-	}
+func deckSpecsFromFiles(deckFiles []deckFile) ([]anki.DeckSpec, error) {
+	specs := make([]anki.DeckSpec, 0, len(deckFiles))
 
-	seen := make(map[string]bool)
-	for line := range strings.SplitSeq(string(data), "\n") {
-		trimmed := strings.TrimSpace(line)
-		if trimmed == "" {
-			continue
+	for _, deck := range deckFiles {
+		noteFiles, err := readNoteList(deck.Path)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read deck file '%s': %w", deck.Name, err)
 		}
-		entry := trimmed
-		if idx := strings.Index(entry, " #"); idx != -1 {
-			entry = strings.TrimSpace(entry[:idx])
-		}
-		key := trimmed
-		if entry != "" && !strings.HasPrefix(entry, "#") {
-			key = entry
-			timestamp := strings.TrimSuffix(entry, ".md")
-			if _, exists := localNotes[timestamp]; !exists {
-				removed = append(removed, entry)
+
+		timestamps := make([]string, 0, len(noteFiles))
+		for _, noteFile := range noteFiles {
+			if _, err := os.Stat(filepath.Join(DirZet, noteFile)); err != nil {
 				continue
 			}
+			timestamps = append(timestamps, strings.TrimSuffix(noteFile, ".md"))
 		}
-		if seen[key] {
-			continue
-		}
-		seen[key] = true
-		kept = append(kept, trimmed)
+
+		specs = append(specs, anki.DeckSpec{Name: deck.Name, Timestamps: timestamps})
 	}
 
-	sort.Sort(sort.Reverse(sort.StringSlice(kept)))
-	changed = deckContent(kept) != string(data)
-	return kept, removed, changed, nil
-}
-
-func deckContent(lines []string) string {
-	if len(lines) == 0 {
-		return ""
-	}
-	return strings.Join(lines, "\n") + "\n"
+	return specs, nil
 }
 
 func init() {
 	ankiCmd.AddCommand(ankiCleanCmd)
+	ankiCleanCmd.Flags().StringSliceVar(&ankiDecks, "deck", nil, "clean only the given deck(s) (repeatable)")
+	ankiCleanCmd.Flags().BoolVarP(&ankiAssumeYes, "yes", "y", false, "remove orphan notes without confirmation")
+	ankiCleanCmd.RegisterFlagCompletionFunc("deck", completeDeckNames)
 }

@@ -7,16 +7,29 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/spf13/cobra"
 )
 
+type deckCleanup struct {
+	Deck    deckFile
+	Kept    []string
+	Removed []string
+}
+
 var cleanCmd = &cobra.Command{
 	Use:     "clean",
 	Aliases: []string{"c"},
-	Short:   "Remove empty notes and unlinked images",
-	Long:    `Remove empty notes (no content beyond title) and image files that are not referenced by any notes.`,
+	Short:   "Remove empty notes, unlinked images and stale deck entries",
+	Long: `Remove empty notes (no content beyond title) and image files that are not referenced by any notes.
+
+Also clean the anki_export_* deck files:
+  - remove lines that reference notes not present locally
+  - remove blank lines and duplicate entries
+  - trim surrounding whitespace
+  - sort lines in reverse order`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		emptyNotes, err := findEmptyNotes()
 		if err != nil {
@@ -28,15 +41,19 @@ var cleanCmd = &cobra.Command{
 			return fmt.Errorf("error finding unlinked images: %w", err)
 		}
 
-		totalFiles := len(emptyNotes) + len(unlinkedImages)
-		if totalFiles == 0 {
-			fmt.Println("No empty notes or unlinked images found.")
+		deckCleanups, err := findDeckCleanups(emptyNotes)
+		if err != nil {
+			return fmt.Errorf("error reading deck files: %w", err)
+		}
+
+		if len(emptyNotes)+len(unlinkedImages)+len(deckCleanups) == 0 {
+			fmt.Println("No empty notes, unlinked images or stale deck entries found.")
 			return nil
 		}
 
-		displayFilesToClean(emptyNotes, unlinkedImages)
+		displayFilesToClean(emptyNotes, unlinkedImages, deckCleanups)
 
-		confirmed, err := prompt.Confirm("Do you want to delete these files?")
+		confirmed, err := prompt.Confirm("Do you want to apply this cleanup?")
 		if err != nil {
 			return err
 		}
@@ -47,11 +64,104 @@ var cleanCmd = &cobra.Command{
 
 		deletedCount := deleteFiles(emptyNotes, unlinkedImages)
 		fmt.Printf("Successfully deleted %d files.\n", deletedCount)
-		return nil
+
+		return applyDeckCleanups(deckCleanups)
 	},
 }
 
-func displayFilesToClean(emptyNotes, unlinkedImages []string) {
+func findDeckCleanups(pendingDeletions []string) ([]deckCleanup, error) {
+	deckFiles, err := getDeckFiles(DirZet)
+	if err != nil {
+		return nil, nil
+	}
+
+	localNotes, err := getLocalList()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, note := range pendingDeletions {
+		delete(localNotes, strings.TrimSuffix(note, ".md"))
+	}
+
+	var cleanups []deckCleanup
+	for _, deck := range deckFiles {
+		kept, removed, changed, err := cleanDeckLines(deck.Path, localNotes)
+		if err != nil {
+			return nil, err
+		}
+		if !changed {
+			continue
+		}
+		cleanups = append(cleanups, deckCleanup{Deck: deck, Kept: kept, Removed: removed})
+	}
+
+	return cleanups, nil
+}
+
+func applyDeckCleanups(cleanups []deckCleanup) error {
+	if len(cleanups) == 0 {
+		return nil
+	}
+
+	totalRemoved := 0
+	for _, cleanup := range cleanups {
+		if err := os.WriteFile(cleanup.Deck.Path, []byte(deckContent(cleanup.Kept)), 0644); err != nil {
+			return fmt.Errorf("failed to write deck file '%s': %w", cleanup.Deck.Name, err)
+		}
+		fmt.Printf("✓ Cleaned deck '%s' (%d stale entries removed)\n", cleanup.Deck.Name, len(cleanup.Removed))
+		totalRemoved += len(cleanup.Removed)
+	}
+
+	fmt.Printf("Updated %d deck file(s), removed %d stale entries.\n", len(cleanups), totalRemoved)
+	return nil
+}
+
+func cleanDeckLines(deckPath string, localNotes map[string]string) (kept, removed []string, changed bool, err error) {
+	data, err := os.ReadFile(deckPath)
+	if err != nil {
+		return nil, nil, false, fmt.Errorf("failed to read deck file: %w", err)
+	}
+
+	seen := make(map[string]bool)
+	for line := range strings.SplitSeq(string(data), "\n") {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" {
+			continue
+		}
+		entry := trimmed
+		if idx := strings.Index(entry, " #"); idx != -1 {
+			entry = strings.TrimSpace(entry[:idx])
+		}
+		key := trimmed
+		if entry != "" && !strings.HasPrefix(entry, "#") {
+			key = entry
+			timestamp := strings.TrimSuffix(entry, ".md")
+			if _, exists := localNotes[timestamp]; !exists {
+				removed = append(removed, entry)
+				continue
+			}
+		}
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
+		kept = append(kept, trimmed)
+	}
+
+	sort.Sort(sort.Reverse(sort.StringSlice(kept)))
+	changed = deckContent(kept) != string(data)
+	return kept, removed, changed, nil
+}
+
+func deckContent(lines []string) string {
+	if len(lines) == 0 {
+		return ""
+	}
+	return strings.Join(lines, "\n") + "\n"
+}
+
+func displayFilesToClean(emptyNotes, unlinkedImages []string, cleanups []deckCleanup) {
 	fmt.Printf("Found %d empty notes and %d unlinked images:\n", len(emptyNotes), len(unlinkedImages))
 
 	for _, note := range emptyNotes {
@@ -60,6 +170,16 @@ func displayFilesToClean(emptyNotes, unlinkedImages []string) {
 
 	for _, image := range unlinkedImages {
 		fmt.Printf("  Unlinked image: %s\n", image)
+	}
+
+	for _, cleanup := range cleanups {
+		if len(cleanup.Removed) == 0 {
+			fmt.Printf("  Deck to normalize: %s\n", cleanup.Deck.Name)
+			continue
+		}
+		for _, entry := range cleanup.Removed {
+			fmt.Printf("  Stale deck entry: %s (deck: %s)\n", entry, cleanup.Deck.Name)
+		}
 	}
 }
 
