@@ -34,6 +34,7 @@ kl [command] --help
 - [Spaced Repetition](#spaced-repetition)
   - [`anki export`](#anki-export)
   - [`anki diff`](#anki-diff)
+  - [`anki clean`](#anki-clean)
 - [Cloud Synchronization](#cloud-synchronization)
   - [`joplin list`](#joplin-list)
   - [`joplin diff`](#joplin-diff)
@@ -110,13 +111,21 @@ Examples:
 
 #### `clean`
 
-Remove empty notes (no content beyond the title) and image files that are not referenced by any notes.
+Remove empty notes (no content beyond the title) and image files that are not referenced by any
+notes, and clean the `anki_export_*` deck files.
 
 ```bash
 kl clean
 ```
 
-Lists the empty notes and unlinked images found, then asks for confirmation before deleting them.
+Deck files are cleaned by dropping lines that reference a note not present locally, removing blank
+lines and duplicate entries, trimming whitespace and sorting lines in reverse order. Notes deleted
+by this same run are taken into account, so their deck entries go away too.
+
+Lists everything found, then asks for a single confirmation before applying.
+
+This cleans the local files only. To drop the matching cards inside Anki, see
+[`anki clean`](#anki-clean).
 
 #### `translate`
 
@@ -254,8 +263,26 @@ This command converts your knowledge notes into Anki flashcards and packages the
 - Skips the command entirely if Anki is running (the collection would be locked)
 - Idempotent: re-exported notes update existing cards, scheduling is preserved
 
+**Orphan removal:**
+
+The deck file is the source of truth. After the import, a card of an exported deck is deleted from
+the collection when its note is no longer listed in `anki_export_<deck>`, or when the
+`<timestamp>.md` file no longer exists in `$K_DIR`. The list is shown and confirmed before deletion,
+and a backup is created first.
+
+Never deleted:
+- cards without a 14-digit timestamp tag, i.e. not created by `kl`
+- cards of a deck that was not exported in this run (`--deck` restricts the removal too)
+- cards of a deck whose file lists no note at all
+- cards in a sub-deck of the exported deck
+- cards of a note whose conversion failed, so a transient error never deletes anything
+
+Orphan removal runs only after a successful import. If the import fails, typically because Anki was
+open, the orphan cards stay in the collection: close Anki and run [`anki clean`](#anki-clean).
+
 **Options:**
-- `--no-import`: Skip the import into Anki, only export the `.apkg` files
+- `--no-import`: Skip the import into Anki, only export the `.apkg` files (no orphan removal either)
+- `--yes` or `-y`: Remove orphan cards without asking for confirmation
 - `--deck <name>`: Export only the given deck (matching `anki_export_<name>`); repeatable and accepts comma-separated values:
   ```bash
   kl anki export --deck vocabulary
@@ -283,6 +310,25 @@ By default shows both local-only notes and Anki-only notes.
 
 - `--local` or `-l`: Show only notes not in Anki
 - `--anki` or `-a`: Show only Anki notes not found locally
+
+#### `anki clean`
+
+Remove notes from Anki that no longer have a local note listed in the `anki_export_*` deck files.
+
+```bash
+kl anki clean
+```
+
+`anki export` already does this after a successful import. Use `anki clean` when the import did not
+run — Anki was open, or the `.apkg` files were imported by hand — so the orphan cards are still
+there.
+
+Anki must be closed: the collection file is opened directly and stays locked while Anki runs.
+
+The same safeguards as `anki export` apply, see [Orphan removal](#anki-export).
+
+- `--deck`: Clean only the given deck(s), repeatable
+- `--yes` or `-y`: Remove the orphan notes without asking for confirmation
 
 
 ### Cloud Synchronization

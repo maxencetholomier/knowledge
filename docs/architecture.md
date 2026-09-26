@@ -42,7 +42,7 @@ graph LR
 
 ## Export to [Anki](https://apps.ankiweb.net/)
 
-The [Anki](https://apps.ankiweb.net/) integration enables one-way export of notes for spaced repetition learning. Exported decks are imported into the Anki collection automatically using the official [anki Python library](https://dev-docs.ankiweb.net/en/latest/api-python.html) (Anki must be closed during import).
+The [Anki](https://apps.ankiweb.net/) integration enables one-way synchronization of notes for spaced repetition learning. Exported decks are imported into the Anki collection automatically using the official [anki Python library](https://dev-docs.ankiweb.net/en/latest/api-python.html) (Anki must be closed during import). The `anki_export_<deck_name>` files are the source of truth: cards whose note left the deck file or disappeared from `$K_DIR` are removed from the collection, so a deleted note never survives as a card. That removal runs at the end of `anki export`, and `anki clean` runs it on its own when the import could not.
 
 ```mermaid
 graph LR
