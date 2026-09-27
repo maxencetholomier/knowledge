@@ -90,7 +90,7 @@ Searches through note body content and outputs matching results with line number
 
 #### `edit`
 
-Edit a note by line number from the last search or find result cache, or directly by timestamp.
+Edit a note by line number from the result cache, or directly by timestamp.
 
 ```bash
 kl edit [line_number|timestamp]
@@ -111,21 +111,12 @@ Examples:
 
 #### `clean`
 
-Remove empty notes (no content beyond the title) and image files that are not referenced by any
+Remove empty notes and image files that are not referenced by any
 notes, and clean the `anki_export_*` deck files.
 
 ```bash
 kl clean
 ```
-
-Deck files are cleaned by dropping lines that reference a note not present locally, removing blank
-lines and duplicate entries, trimming whitespace and sorting lines in reverse order. Notes deleted
-by this same run are taken into account, so their deck entries go away too.
-
-Lists everything found, then asks for a single confirmation before applying.
-
-This cleans the local files only. To drop the matching cards inside Anki, see
-[`anki clean`](#anki-clean).
 
 #### `translate`
 
@@ -134,10 +125,6 @@ Convert timestamp(s) to the format `timestamp # Title`.
 ```bash
 kl translate [timestamp...]
 ```
-
-Accepts timestamps from arguments or stdin (one per line), with or without the `.md` extension.
-
-- `--anki` or `-a`: Output format with `.md` extension (for Anki export)
 
 #### Useful flags
 
@@ -161,7 +148,6 @@ When searching with multiple words, you can control how the search terms are com
   ```bash
   kl find project report -m AND
   ```
-
 
 ### Media
 
@@ -238,65 +224,27 @@ Export selected notes to Anki package (.apkg) format for spaced repetition learn
 kl anki export
 ```
 
-This command converts your knowledge notes into Anki flashcards and packages them for import into Anki. Notes are organized into separate decks based on special deck definition files in your zettelkasten directory.
+This command converts your knowledge notes into Anki flashcards and import them into Anki.
+Notes are organized into separate decks based on special deck definition files in your zettelkasten directory.
 
 **Quick Setup:**
 
 1. Create a deck definition file in your `$K_DIR`:
+
    ```bash
    echo "20240315100000.md" > anki_export_vocabulary
    echo "20240316120000.md" >> anki_export_vocabulary
    ```
 
 2. Export to Anki format:
+
    ```bash
    kl anki export
    ```
 
 3. Decks are automatically imported into your Anki collection
 
-**Automatic import:**
-
-- Uses the official [anki Python library](https://dev-docs.ankiweb.net/en/latest/api-python.html),
-  no add-on required
-- Creates a backup in Anki's backups folder before each import
-- Skips the command entirely if Anki is running (the collection would be locked)
-- Idempotent: re-exported notes update existing cards, scheduling is preserved
-
-**Orphan removal:**
-
-The deck file is the source of truth. After the import, a card of an exported deck is deleted from
-the collection when its note is no longer listed in `anki_export_<deck>`, or when the
-`<timestamp>.md` file no longer exists in `$K_DIR`. The list is shown and confirmed before deletion,
-and a backup is created first.
-
-Never deleted:
-- cards without a 14-digit timestamp tag, i.e. not created by `kl`
-- cards of a deck that was not exported in this run (`--deck` restricts the removal too)
-- cards of a deck whose file lists no note at all
-- cards in a sub-deck of the exported deck
-- cards of a note whose conversion failed, so a transient error never deletes anything
-
-Orphan removal runs only after a successful import. If the import fails, typically because Anki was
-open, the orphan cards stay in the collection: close Anki and run [`anki clean`](#anki-clean).
-
-**Options:**
-- `--no-import`: Skip the import into Anki, only export the `.apkg` files (no orphan removal either)
-- `--yes` or `-y`: Remove orphan cards without asking for confirmation
-- `--deck <name>`: Export only the given deck (matching `anki_export_<name>`); repeatable and accepts comma-separated values:
-  ```bash
-  kl anki export --deck vocabulary
-  kl anki export --deck vocabulary --deck grammar
-  ```
-
-**Features:**
-- Converts note titles to flashcard fronts
-- Processes markdown content to HTML with syntax highlighting
-- Embeds images and media files
-- Converts note links to styled text
-- Custom CSS styling for optimal readability
-- Organizes cards into topic-based decks
-- Automatically imports decks into your Anki collection
+The `trash` deck is never exported nor pruned, unless you ask for it with `--deck trash`.
 
 #### `anki diff`
 
@@ -319,18 +267,6 @@ Remove notes from Anki that no longer have a local note listed in the `anki_expo
 kl anki clean
 ```
 
-`anki export` already does this after a successful import. Use `anki clean` when the import did not
-run — Anki was open, or the `.apkg` files were imported by hand — so the orphan cards are still
-there.
-
-Anki must be closed: the collection file is opened directly and stays locked while Anki runs.
-
-The same safeguards as `anki export` apply, see [Orphan removal](#anki-export).
-
-- `--deck`: Clean only the given deck(s), repeatable
-- `--yes` or `-y`: Remove the orphan notes without asking for confirmation
-
-
 ### Cloud Synchronization
 
 The `joplin` command provides integration with the Joplin note-taking application:
@@ -343,9 +279,7 @@ List all notes in Joplin with their timestamps and titles.
 kl joplin list
 ```
 
-This command retrieves all notes from Joplin via the API and displays them in the same format as `kl list`, making it easy to compare local and Joplin notes.
-
-Output format: `TIMESTAMP - TITLE`
+Output format: `TIMESTAMP - TITLE`, the same as `kl list`.
 
 #### `joplin diff`
 
@@ -355,14 +289,8 @@ Compare local notes with Joplin notes by timestamp to identify synchronization i
 kl joplin diff
 ```
 
-This command compares the output of `kl list` and `kl joplin list` to identify which notes are missing in either location. The comparison is based solely on timestamps, not content or titles.
+The comparison is based solely on timestamps, not content or titles.
 
-Shows:
-- **Only in local** - Notes that exist locally but not in Joplin
-- **Only in Joplin** - Notes that exist in Joplin but not locally
-- **Summary** - Count of notes in each category
-
-Flags:
 - `--debug`: Show detailed content comparison for debugging
 
 #### `joplin import`
