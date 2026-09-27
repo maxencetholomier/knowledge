@@ -64,7 +64,10 @@ confirmation. Only cards created by kl are considered. Use --yes to skip the
 confirmation.
 
 Use --deck to restrict the export to specific decks (repeatable):
-  kl anki export --deck vocabulary --deck grammar`,
+  kl anki export --deck vocabulary --deck grammar
+
+The 'trash' deck is never exported nor pruned unless it is asked for explicitly with
+--deck trash.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if !ankiNoImport && anki.IsAnkiRunning() {
 			fmt.Println("Anki is running, skipping export. Close Anki and re-run, or use --no-import to only export the .apkg files.")
@@ -106,9 +109,17 @@ var ankiNoImport bool
 var ankiDecks []string
 var ankiAssumeYes bool
 
+const trashDeck = "trash"
+
 func filterDeckFiles(deckFiles []deckFile, requested []string) ([]deckFile, error) {
 	if len(requested) == 0 {
-		return deckFiles, nil
+		kept := make([]deckFile, 0, len(deckFiles))
+		for _, deck := range deckFiles {
+			if deck.Name != trashDeck {
+				kept = append(kept, deck)
+			}
+		}
+		return kept, nil
 	}
 
 	byName := make(map[string]deckFile, len(deckFiles))

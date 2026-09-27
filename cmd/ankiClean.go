@@ -16,7 +16,9 @@ var ankiCleanCmd = &cobra.Command{
 	Short: "Clean notes in Anki that are not present locally",
 	Long: `Remove notes from Anki that no longer have a local note listed in the anki_export_* deck files.
 
-Anki must be closed: the collection file is opened directly and stays locked while Anki runs.`,
+Anki must be closed: the collection file is opened directly and stays locked while Anki runs.
+
+The 'trash' deck is skipped unless it is asked for explicitly with --deck trash.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		deckFiles, err := getDeckFiles(DirZet)
 		if err != nil {
