@@ -194,12 +194,10 @@ func applyAnkiMergeActions(actions []ankiMergeAction, deckFiles []deckFile) erro
 			continue
 		}
 
-		file, err := files.Create(filepath.Join(DirZet, action.fileName), action.remote+"\n")
-		if err != nil {
+		if err := files.Create(filepath.Join(DirZet, action.fileName), action.remote+"\n"); err != nil {
 			fmt.Printf("Error pulling %s: %v\n", action.fileName, err)
 			continue
 		}
-		file.Close()
 		pulled++
 	}
 

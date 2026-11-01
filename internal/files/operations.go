@@ -21,17 +21,8 @@ func Edit(filePath string) {
 	vim.Run()
 }
 
-func Create(filePath, fileContent string) (*os.File, error) {
-	file, err := os.Create(filePath)
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = file.WriteString(fileContent)
-	if err != nil {
-		return nil, err
-	}
-	return file, nil
+func Create(filePath, fileContent string) error {
+	return os.WriteFile(filePath, []byte(fileContent), 0644)
 }
 
 func GetLastUpdates(DirZet string) (map[string]time.Time, error) {
@@ -99,11 +90,9 @@ func CreateMediaNote(
 	fileName := timestamp + ".md"
 	template := utils.CreateTemplate(timestamp, templateType)
 
-	file, err := Create(dirZet+"/"+fileName, template)
-	if err != nil {
+	if err := Create(dirZet+"/"+fileName, template); err != nil {
 		return err
 	}
-	defer file.Close()
 
 	Edit(dirZet + "/" + fileName)
 

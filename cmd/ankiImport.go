@@ -147,12 +147,10 @@ func applyAnkiImports(collectionPath string, imports []ankiImport, deckFiles []d
 	imported := 0
 	for _, imp := range imports {
 		fileName := imp.timestamp + ".md"
-		file, err := files.Create(filepath.Join(DirZet, fileName), imp.content)
-		if err != nil {
+		if err := files.Create(filepath.Join(DirZet, fileName), imp.content); err != nil {
 			fmt.Printf("Error creating %s: %v\n", fileName, err)
 			continue
 		}
-		file.Close()
 
 		if err := appendToDeckFile(deckPaths[imp.note.Deck], fileName, imp.note.Front); err != nil {
 			fmt.Printf("Error updating deck file for %s: %v\n", fileName, err)

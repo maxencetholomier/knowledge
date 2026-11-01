@@ -22,12 +22,9 @@ Opens the newly created note in your default editor for immediate editing.`,
 		fileName := timestamp + ".md"
 		template := utils.CreateTemplate(timestamp, "")
 
-		file, err := files.Create(DirZet+"/"+fileName, template)
-		if err != nil {
+		if err := files.Create(DirZet+"/"+fileName, template); err != nil {
 			return err
 		}
-
-		defer file.Close()
 
 		files.Edit(DirZet + "/" + fileName)
 

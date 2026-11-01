@@ -92,13 +92,10 @@ func applyMergeActions(mergeActions []mergeAction, notebookId string) {
 	for _, action := range mergeActions {
 		if action.action == merge.Pull {
 			fileContent := "# " + action.joplinTitle + "\n\n" + joplin.StripLeadingHeading(action.joplinBody)
-			file, err := files.Create(DirZet+"/"+action.fileName, joplin.ReplaceIdsToLink(fileContent))
-			if err != nil {
+			if err := files.Create(DirZet+"/"+action.fileName, joplin.ReplaceIdsToLink(fileContent)); err != nil {
 				fmt.Printf("Error pulling %s: %v\n", action.fileName, err)
 				continue
 			}
-			defer file.Close()
-
 		} else if action.action == merge.Push {
 			body, err := os.ReadFile(DirZet + "/" + action.fileName)
 			if err != nil {

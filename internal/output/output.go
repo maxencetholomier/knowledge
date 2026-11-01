@@ -29,8 +29,7 @@ func PrintToCache(text string) error {
 			}
 		}
 	}
-	writer.Flush()
-	return nil
+	return writer.Flush()
 }
 
 func GetLineFromCache(filename string, lineNumber int) (string, error) {

@@ -84,12 +84,10 @@ func writeNotesToFiles(notesToImport []localNote) {
 	fmt.Printf("\nImporting %d notes...\n", len(notesToImport))
 
 	for _, note := range notesToImport {
-		file, err := files.Create(DirZet+"/"+note.fileName, note.fileContent)
-		if err != nil {
+		if err := files.Create(DirZet+"/"+note.fileName, note.fileContent); err != nil {
 			fmt.Printf("Error creating %s: %v\n", strings.TrimSuffix(note.fileName, ".md"), err)
 			continue
 		}
-		defer file.Close()
 	}
 
 	fmt.Printf("\nSuccessfully imported %d notes from Joplin.\n", len(notesToImport))
