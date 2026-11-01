@@ -43,11 +43,9 @@ func presearchFind(args []string, fileList []files.FileInfo) ([]files.FileInfo, 
 		return fileList, nil
 	}
 
-	searcher := search.NewSearcher(fileList).WithStrategy(search.StrategyHeader)
-	if findCaseInsensitive {
-		searcher = searcher.WithCaseInsensitive()
+	searcher := &search.Searcher{
+		Files: fileList, Strategy: search.StrategyHeader, CaseInsensitive: findCaseInsensitive,
 	}
-
 	results, err := searcher.Search(args)
 	if err != nil {
 		return nil, err
@@ -103,18 +101,7 @@ func runInteractiveFind(args []string, fileList []files.FileInfo) error {
 		return err
 	}
 
-	fzfConfig := ui.NewFzfConfigWithCommand(FzfEnv)
-
-	for _, optStr := range FzfOpts {
-		if optStr != "" {
-			opts, err := ui.ParseOptions(optStr)
-			if err == nil {
-				fzfConfig.WithOptions(opts...)
-			}
-		}
-	}
-
-	selector := ui.NewFileSelector(fzfConfig)
+	selector := &ui.FileSelector{Config: fzfConfig()}
 	selectedFile, err := selector.SelectFile(filteredFiles, DirZet)
 	if err != nil {
 		return err
@@ -134,17 +121,11 @@ func runTraditionalFind(args []string, fileList []files.FileInfo) error {
 	if len(args) == 0 {
 		results = fileListToResults(fileList)
 	} else {
-		searcher := search.NewSearcher(fileList).WithStrategy(search.StrategyHeader)
-		if findCaseInsensitive {
-			searcher = searcher.WithCaseInsensitive()
-		}
-		if findMatchingStrategy != "" {
-			switch findMatchingStrategy {
-			case "AND":
-				searcher = searcher.WithMatchingStrategy(search.StrategyAND)
-			case "OR":
-				searcher = searcher.WithMatchingStrategy(search.StrategyOR)
-			}
+		searcher := &search.Searcher{
+			Files:            fileList,
+			Strategy:         search.StrategyHeader,
+			CaseInsensitive:  findCaseInsensitive,
+			MatchingStrategy: search.MatchingStrategy(findMatchingStrategy),
 		}
 		results, err = searcher.Search(args)
 		if err != nil {

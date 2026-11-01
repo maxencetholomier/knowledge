@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/maxencetholomier/knowledge/internal/config"
+	"github.com/maxencetholomier/knowledge/internal/ui"
 	"github.com/spf13/cobra"
 )
 
@@ -47,6 +48,16 @@ interactive fuzzy finding (fzf) and integration with external tools like Joplin.
 
 		return nil
 	},
+}
+
+func fzfConfig() *ui.FzfConfig {
+	options := []string{"--ansi"}
+	for _, optStr := range FzfOpts {
+		if opts, err := ui.ParseOptions(optStr); err == nil {
+			options = append(options, opts...)
+		}
+	}
+	return &ui.FzfConfig{Command: FzfEnv, Options: options, BaseDir: DirZet}
 }
 
 func envOr(value, envName string) string {

@@ -35,29 +35,6 @@ type Searcher struct {
 	MatchingStrategy MatchingStrategy
 }
 
-func NewSearcher(fileList []files.FileInfo) *Searcher {
-	return &Searcher{
-		Files:            fileList,
-		Strategy:         StrategyAll,
-		MatchingStrategy: StrategyOR,
-	}
-}
-
-func (s *Searcher) WithStrategy(strategy SearchStrategy) *Searcher {
-	s.Strategy = strategy
-	return s
-}
-
-func (s *Searcher) WithCaseInsensitive() *Searcher {
-	s.CaseInsensitive = true
-	return s
-}
-
-func (s *Searcher) WithMatchingStrategy(strategy MatchingStrategy) *Searcher {
-	s.MatchingStrategy = strategy
-	return s
-}
-
 func (s *Searcher) Search(patterns []string) ([]SearchResult, error) {
 	var results []SearchResult
 
@@ -149,28 +126,6 @@ type RipgrepSearcher struct {
 	FileTypes       []string
 	CaseInsensitive bool
 	Colors          bool
-}
-
-func NewRipgrepSearcher(dir string) *RipgrepSearcher {
-	return &RipgrepSearcher{
-		Dir:       dir,
-		FileTypes: []string{"md"},
-	}
-}
-
-func (r *RipgrepSearcher) WithFileTypes(types ...string) *RipgrepSearcher {
-	r.FileTypes = types
-	return r
-}
-
-func (r *RipgrepSearcher) WithCaseInsensitive() *RipgrepSearcher {
-	r.CaseInsensitive = true
-	return r
-}
-
-func (r *RipgrepSearcher) WithColors() *RipgrepSearcher {
-	r.Colors = true
-	return r
 }
 
 func (r *RipgrepSearcher) Search(pattern string) ([]byte, error) {

@@ -29,13 +29,13 @@ func TestSearchStrategies(t *testing.T) {
 		patterns []string
 		want     []string
 	}{
-		{"or matches any", NewSearcher(testFiles()), []string{"gofmt", "bake"}, []string{"a.md", "b.md"}},
-		{"and needs all", NewSearcher(testFiles()).WithMatchingStrategy(StrategyAND),
+		{"or matches any", &Searcher{Files: testFiles()}, []string{"gofmt", "bake"}, []string{"a.md", "b.md"}},
+		{"and needs all", &Searcher{Files: testFiles(), MatchingStrategy: StrategyAND},
 			[]string{"Go", "bake"}, []string{"b.md"}},
-		{"header only", NewSearcher(testFiles()).WithStrategy(StrategyHeader), []string{"Go"}, []string{"a.md"}},
-		{"body only", NewSearcher(testFiles()).WithStrategy(StrategyBody), []string{"Go"}, []string{"b.md"}},
-		{"case insensitive", NewSearcher(testFiles()).WithCaseInsensitive(), []string{"cooking"}, []string{"b.md"}},
-		{"case sensitive", NewSearcher(testFiles()), []string{"cooking"}, nil},
+		{"header only", &Searcher{Files: testFiles(), Strategy: StrategyHeader}, []string{"Go"}, []string{"a.md"}},
+		{"body only", &Searcher{Files: testFiles(), Strategy: StrategyBody}, []string{"Go"}, []string{"b.md"}},
+		{"case insensitive", &Searcher{Files: testFiles(), CaseInsensitive: true}, []string{"cooking"}, []string{"b.md"}},
+		{"case sensitive", &Searcher{Files: testFiles()}, []string{"cooking"}, nil},
 	}
 
 	for _, c := range cases {
@@ -57,7 +57,7 @@ func TestSearchStrategies(t *testing.T) {
 }
 
 func TestSearchInvalidPattern(t *testing.T) {
-	if _, err := NewSearcher(testFiles()).Search([]string{"("}); err == nil {
+	if _, err := (&Searcher{Files: testFiles()}).Search([]string{"("}); err == nil {
 		t.Error("invalid regexp must return an error")
 	}
 }

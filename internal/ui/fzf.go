@@ -8,48 +8,13 @@ import (
 )
 
 type FzfConfig struct {
-	Command    string
-	Options    []string
-	Preview    string
-	Dimensions string
-	BaseDir    string
-}
-
-func NewFzfConfig() *FzfConfig {
-	return &FzfConfig{
-		Command:    "fzf",
-		Options:    []string{"--ansi"},
-		Dimensions: "",
-	}
-}
-
-func NewFzfConfigWithCommand(command string) *FzfConfig {
-	return &FzfConfig{
-		Command:    command,
-		Options:    []string{"--ansi"},
-		Dimensions: "",
-	}
-}
-
-func (f *FzfConfig) WithOptions(opts ...string) *FzfConfig {
-	f.Options = append(f.Options, opts...)
-	return f
-}
-
-func (f *FzfConfig) WithBaseDir(baseDir string) *FzfConfig {
-	f.BaseDir = baseDir
-	return f
+	Command string
+	Options []string
+	BaseDir string
 }
 
 type FileSelector struct {
 	Config *FzfConfig
-}
-
-func NewFileSelector(config *FzfConfig) *FileSelector {
-	if config == nil {
-		config = NewFzfConfig()
-	}
-	return &FileSelector{Config: config}
 }
 
 func (fs *FileSelector) SelectFile(fileList []files.FileInfo, baseDir string) (string, error) {
@@ -59,21 +24,13 @@ func (fs *FileSelector) SelectFile(fileList []files.FileInfo, baseDir string) (s
 
 	args := []string{}
 
-	if fs.Config.Dimensions != "" && strings.Contains(fs.Config.Command, "tmux") {
-		args = append(args, fs.Config.Dimensions)
-	}
-
 	args = append(args, fs.Config.Options...)
 
-	if fs.Config.Preview != "" {
-		args = append(args, "--preview", fs.Config.Preview)
-	} else {
-		args = append(args, "--delimiter", "\t")
-		args = append(args, "--with-nth", "1")
-		bat := "bat --plain --theme=${BAT_THEME} --color=always"
-		preview := fmt.Sprintf("%s %s/{2}.md 2>/dev/null || %s %s/{1}.md", bat, baseDir, bat, baseDir)
-		args = append(args, "--preview", preview)
-	}
+	args = append(args, "--delimiter", "\t")
+	args = append(args, "--with-nth", "1")
+	bat := "bat --plain --theme=${BAT_THEME} --color=always"
+	preview := fmt.Sprintf("%s %s/{2}.md 2>/dev/null || %s %s/{1}.md", bat, baseDir, bat, baseDir)
+	args = append(args, "--preview", preview)
 
 	cmd := exec.Command(fs.Config.Command, args...)
 
@@ -138,13 +95,6 @@ type SearchSelector struct {
 	Config *FzfConfig
 }
 
-func NewSearchSelector(config *FzfConfig) *SearchSelector {
-	if config == nil {
-		config = NewFzfConfig()
-	}
-	return &SearchSelector{Config: config}
-}
-
 func (ss *SearchSelector) SelectFromSearchResults(rgOutput []byte) (string, error) {
 	if len(rgOutput) == 0 {
 		fmt.Println("No matches found")
@@ -152,10 +102,6 @@ func (ss *SearchSelector) SelectFromSearchResults(rgOutput []byte) (string, erro
 	}
 
 	args := []string{}
-
-	if ss.Config.Dimensions != "" && strings.Contains(ss.Config.Command, "tmux") {
-		args = append(args, ss.Config.Dimensions)
-	}
 
 	args = append(args, "--ansi")
 	args = append(args, "--delimiter", ":")

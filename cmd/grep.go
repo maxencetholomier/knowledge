@@ -38,11 +38,9 @@ func presearchGrep(args []string) ([]byte, error) {
 		searchTerm = args[0]
 	}
 
-	searcher := search.NewRipgrepSearcher(DirZet).WithFileTypes("md").WithColors()
-	if grepCaseInsensitive {
-		searcher = searcher.WithCaseInsensitive()
+	searcher := &search.RipgrepSearcher{
+		Dir: DirZet, FileTypes: []string{"md"}, Colors: true, CaseInsensitive: grepCaseInsensitive,
 	}
-
 	return searcher.Search(searchTerm)
 }
 
@@ -72,18 +70,7 @@ func runInteractiveGrep(args []string) error {
 		return nil
 	}
 
-	fzfConfig := ui.NewFzfConfigWithCommand(FzfEnv).WithBaseDir(DirZet)
-
-	for _, optStr := range FzfOpts {
-		if optStr != "" {
-			opts, err := ui.ParseOptions(optStr)
-			if err == nil {
-				fzfConfig.WithOptions(opts...)
-			}
-		}
-	}
-
-	selector := ui.NewSearchSelector(fzfConfig)
+	selector := &ui.SearchSelector{Config: fzfConfig()}
 	selectedFile, err := selector.SelectFromSearchResults(rgOutput)
 	if err != nil {
 		return err
@@ -108,17 +95,11 @@ func runTraditionalGrep(args []string) error {
 		return err
 	}
 
-	searcher := search.NewSearcher(fileList).WithStrategy(search.StrategyBody)
-	if grepCaseInsensitive {
-		searcher = searcher.WithCaseInsensitive()
-	}
-	if grepMatchingStrategy != "" {
-		switch grepMatchingStrategy {
-		case "AND":
-			searcher = searcher.WithMatchingStrategy(search.StrategyAND)
-		case "OR":
-			searcher = searcher.WithMatchingStrategy(search.StrategyOR)
-		}
+	searcher := &search.Searcher{
+		Files:            fileList,
+		Strategy:         search.StrategyBody,
+		CaseInsensitive:  grepCaseInsensitive,
+		MatchingStrategy: search.MatchingStrategy(grepMatchingStrategy),
 	}
 	results, err := searcher.Search(args)
 	if err != nil {
