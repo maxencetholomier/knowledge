@@ -25,8 +25,13 @@ func GetFirstLine(input string) string {
 	return ""
 }
 
+var lastTimestamp time.Time
+
 func CreateTimestamp() string {
-	now := time.Now()
-	time.Sleep(1 * time.Second)
+	now := time.Now().Truncate(time.Second)
+	if !now.After(lastTimestamp) {
+		now = lastTimestamp.Add(time.Second)
+	}
+	lastTimestamp = now
 	return now.Format("20060102150405")
 }
