@@ -69,9 +69,10 @@ Use --deck to restrict the export to specific decks (repeatable):
 The 'trash' deck is never exported nor pruned unless it is asked for explicitly with
 --deck trash.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if !ankiNoImport && anki.IsAnkiRunning() {
-			fmt.Println("Anki is running, skipping export. Close Anki and re-run, or use --no-import to only export the .apkg files.")
-			return nil
+		if !ankiNoImport {
+			if err := ensureAnkiClosed(); err != nil {
+				return fmt.Errorf("%w, or use --no-import to only export the .apkg files", err)
+			}
 		}
 
 		deckFiles, err := getDeckFiles(DirZet)
@@ -86,22 +87,7 @@ The 'trash' deck is never exported nor pruned unless it is asked for explicitly 
 
 		printDeckFilesToExport(deckFiles)
 
-		if err := files.EnsureDir(DirExport); err != nil {
-			return err
-		}
-
-		deckResults, err := exportDeckFiles(deckFiles)
-		if err != nil {
-			return err
-		}
-
-		printAnkiExportSummary(deckResults)
-
-		if !ankiNoImport && len(deckResults) > 0 {
-			importDecksIntoAnki(deckResults)
-		}
-
-		return nil
+		return exportDecks(deckFiles, !ankiNoImport)
 	},
 }
 
@@ -110,6 +96,40 @@ var ankiDecks []string
 var ankiAssumeYes bool
 
 const trashDeck = "trash"
+
+func ensureAnkiClosed() error {
+	if anki.IsAnkiRunning() {
+		return fmt.Errorf("Anki is running, close it and re-run")
+	}
+	return nil
+}
+
+func exportDecks(deckFiles []deckFile, importIntoAnki bool) error {
+	if err := files.EnsureDir(DirExport); err != nil {
+		return err
+	}
+
+	deckResults, err := exportDeckFiles(deckFiles)
+	if err != nil {
+		return err
+	}
+
+	printAnkiExportSummary(deckResults)
+
+	if importIntoAnki && len(deckResults) > 0 {
+		importDecksIntoAnki(deckResults)
+	}
+
+	return nil
+}
+
+func deckNames(deckFiles []deckFile) []string {
+	names := make([]string, len(deckFiles))
+	for i, deck := range deckFiles {
+		names[i] = deck.Name
+	}
+	return names
+}
 
 func filterDeckFiles(deckFiles []deckFile, requested []string) ([]deckFile, error) {
 	if len(requested) == 0 {
@@ -253,11 +273,7 @@ func dedupeOrphans(orphans []anki.OrphanNote) []anki.OrphanNote {
 }
 
 func printDeckFilesToExport(deckFiles []deckFile) {
-	names := make([]string, len(deckFiles))
-	for i, d := range deckFiles {
-		names[i] = d.Name
-	}
-	fmt.Printf("Discovered %d deck(s): %s\n", len(deckFiles), strings.Join(names, ", "))
+	fmt.Printf("Discovered %d deck(s): %s\n", len(deckFiles), strings.Join(deckNames(deckFiles), ", "))
 }
 
 func exportDeckFiles(deckFiles []deckFile) (map[string]deckExportResult, error) {
