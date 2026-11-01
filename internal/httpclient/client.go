@@ -6,10 +6,10 @@ import (
 	"net/http"
 )
 
-func Get(url string, detector PlatformDetector) ([]byte, error) {
+func Get(url string) ([]byte, error) {
 	resp, err := http.Get(url)
 	if err != nil {
-		return nil, WrapConnectionError(fmt.Errorf("HTTP GET request failed for URL %s: %w", url, err), url, detector)
+		return nil, WrapConnectionError(fmt.Errorf("HTTP GET request failed for URL %s: %w", url, err), url)
 	}
 	defer resp.Body.Close()
 
@@ -26,7 +26,7 @@ func Get(url string, detector PlatformDetector) ([]byte, error) {
 	return body, nil
 }
 
-func Delete(url string, detector PlatformDetector) error {
+func Delete(url string) error {
 	req, err := http.NewRequest("DELETE", url, nil)
 	if err != nil {
 		return err
@@ -35,7 +35,7 @@ func Delete(url string, detector PlatformDetector) error {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return WrapConnectionError(err, url, detector)
+		return WrapConnectionError(err, url)
 	}
 	defer resp.Body.Close()
 
@@ -43,7 +43,7 @@ func Delete(url string, detector PlatformDetector) error {
 }
 
 func Send(
-	method, url string, body io.Reader, contentType, context string, detector PlatformDetector,
+	method, url string, body io.Reader, contentType, context string,
 ) ([]byte, error) {
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
@@ -55,7 +55,7 @@ func Send(
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, WrapConnectionError(FormatHTTPError(err, context, "HTTP request failed"), url, detector)
+		return nil, WrapConnectionError(FormatHTTPError(err, context, "HTTP request failed"), url)
 	}
 	defer resp.Body.Close()
 

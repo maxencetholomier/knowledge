@@ -2,21 +2,10 @@ package joplin
 
 import (
 	"bytes"
+
 	"github.com/maxencetholomier/knowledge/internal/config"
 	"github.com/maxencetholomier/knowledge/internal/httpclient"
-	"strings"
 )
-
-type JoplinPlatformDetector struct{}
-
-var platformDetector = &JoplinPlatformDetector{}
-
-func (d *JoplinPlatformDetector) DetectPlatform(url string) string {
-	if strings.Contains(url, "localhost:41184") {
-		return "Joplin"
-	}
-	return "serveur distant"
-}
 
 func buildJoplinURL(endpoint string, queryParams string) (string, error) {
 	token, err := config.JoplinToken()
@@ -27,14 +16,14 @@ func buildJoplinURL(endpoint string, queryParams string) (string, error) {
 }
 
 func httpGet(url string) ([]byte, error) {
-	return httpclient.Get(url, platformDetector)
+	return httpclient.Get(url)
 }
 
 func httpSend(method string, url string, b bytes.Buffer, contentType string, context string) error {
-	_, err := httpclient.Send(method, url, &b, contentType, context, platformDetector)
+	_, err := httpclient.Send(method, url, &b, contentType, context)
 	return err
 }
 
 func httpDelete(url string) error {
-	return httpclient.Delete(url, platformDetector)
+	return httpclient.Delete(url)
 }
