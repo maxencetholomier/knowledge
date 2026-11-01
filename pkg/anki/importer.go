@@ -9,20 +9,40 @@ import (
 	"strings"
 )
 
-const importScript = `
+const pythonPreamble = `
+import json
 import os
+import re
 import sys
 from anki.collection import Collection, ImportAnkiPackageOptions, ImportAnkiPackageRequest
 
-try:
-    col = Collection(sys.argv[1])
-except Exception as e:
-    print(f"  Could not open the Anki collection (is Anki running?): {e}", file=sys.stderr)
-    sys.exit(1)
+TIMESTAMP = re.compile(r"\b\d{14}\b")
+TAGS = re.compile(r"<[^>]+>")
 
-try:
+def note_timestamp(tags):
+    for tag in tags:
+        match = TIMESTAMP.search(tag)
+        if match:
+            return match.group(0)
+    return None
+
+def open_collection():
+    try:
+        return Collection(sys.argv[1])
+    except Exception as e:
+        print(f"  Could not open the Anki collection (is Anki running?): {e}", file=sys.stderr)
+        sys.exit(1)
+
+def backup(col):
     backup_folder = os.path.join(os.path.dirname(sys.argv[1]), "backups")
+    os.makedirs(backup_folder, exist_ok=True)
     col.create_backup(backup_folder=backup_folder, force=True, wait_for_completion=True)
+`
+
+const importScript = pythonPreamble + `
+col = open_collection()
+try:
+    backup(col)
     for path in sys.argv[2:]:
         request = ImportAnkiPackageRequest(
             package_path=path,

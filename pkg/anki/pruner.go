@@ -19,30 +19,9 @@ type OrphanNote struct {
 	Front     string `json:"front"`
 }
 
-const findOrphansScript = `
-import json
-import re
-import sys
-from anki.collection import Collection
-
-TIMESTAMP = re.compile(r"\b\d{14}\b")
-TAGS = re.compile(r"<[^>]+>")
-
-def note_timestamp(tags):
-    for tag in tags:
-        match = TIMESTAMP.search(tag)
-        if match:
-            return match.group(0)
-    return None
-
+const findOrphansScript = pythonPreamble + `
 specs = json.load(sys.stdin)
-
-try:
-    col = Collection(sys.argv[1])
-except Exception as e:
-    print(f"  Could not open the Anki collection (is Anki running?): {e}", file=sys.stderr)
-    sys.exit(1)
-
+col = open_collection()
 orphans = []
 try:
     for spec in specs:
@@ -70,24 +49,11 @@ finally:
 json.dump(orphans, sys.stdout)
 `
 
-const removeNotesScript = `
-import json
-import os
-import sys
-from anki.collection import Collection
-
+const removeNotesScript = pythonPreamble + `
 note_ids = json.load(sys.stdin)
-
+col = open_collection()
 try:
-    col = Collection(sys.argv[1])
-except Exception as e:
-    print(f"  Could not open the Anki collection (is Anki running?): {e}", file=sys.stderr)
-    sys.exit(1)
-
-try:
-    backup_folder = os.path.join(os.path.dirname(sys.argv[1]), "backups")
-    os.makedirs(backup_folder, exist_ok=True)
-    col.create_backup(backup_folder=backup_folder, force=True, wait_for_completion=True)
+    backup(col)
     col.remove_notes(note_ids)
 finally:
     col.close()
