@@ -33,6 +33,8 @@ kl [command] --help
   - [`man`](#man)
 - [Spaced Repetition](#spaced-repetition)
   - [`anki export`](#anki-export)
+  - [`anki import`](#anki-import)
+  - [`anki merge`](#anki-merge)
   - [`anki diff`](#anki-diff)
   - [`anki clean`](#anki-clean)
 - [Cloud Synchronization](#cloud-synchronization)
@@ -245,6 +247,39 @@ Notes are organized into separate decks based on special deck definition files i
 3. Decks are automatically imported into your Anki collection
 
 The `trash` deck is never exported nor pruned, unless you ask for it with `--deck trash`.
+
+Each Anki note carries a hidden `Markdown` field holding the note source. The visible `Back` field
+is regenerated from it at every export, so edits made in `Back` are lost: to edit a note from Anki
+(desktop or AnkiDroid), edit the `Markdown` field instead.
+
+#### `anki import`
+
+Create local notes from Anki notes that have no local file, and append them to the
+`anki_export_<deck>` file of their deck.
+
+```bash
+kl anki import
+```
+
+Notes created directly in Anki (note type "Knowledge Basic", no timestamp tag) get a new timestamp.
+The tag and the GUID are set in Anki so the next export updates them instead of duplicating them,
+and their review history is kept. If their `Markdown` field is empty, the raw HTML of `Front` and
+`Back` is written for manual cleanup.
+
+#### `anki merge`
+
+Synchronize notes with Anki in both directions, the newest version wins: the Anki note modification
+time against the last git commit of the local file.
+
+```bash
+kl anki merge --diff
+```
+
+Pulled notes overwrite the local file. Pushed notes re-export their whole deck. Notes exported
+before the `Markdown` field existed are always pushed. Use `--force-local` or `--force-anki` to
+ignore timestamps.
+
+To bring edits made on the phone: sync AnkiDroid, sync Anki desktop, close Anki, then run the merge.
 
 #### `anki diff`
 

@@ -2,53 +2,43 @@
 
 Knowledge operates as a local-first system. The cloud integration is the "icing on the cake".
 
-On your computer, it manages markdown notes in your filesystem (creation, research, deletion, etc.) and provides two distinct integrations:
+On your computer, it manages markdown notes in your filesystem (creation, research, deletion, etc.) and synchronizes them bidirectionally (import, export and merge) with two applications, each serving a different purpose:
 
-- **Bidirectional synchronization** (import and export) with [Joplin](https://github.com/laurent22/joplin) Desktop
-- **Export** to [Anki](https://apps.ankiweb.net/) via `.apkg` packages
+- [Joplin](https://github.com/laurent22/joplin), to read and write the notes on every device
+- [Anki](https://apps.ankiweb.net/), to learn selected notes through spaced repetition
 
-## Bidirectional synchronization with [Joplin](https://github.com/laurent22/joplin)
-
-The [Joplin](https://github.com/laurent22/joplin) integration enables bidirectional synchronization between your local Knowledge notes and [Joplin](https://github.com/laurent22/joplin)'s ecosystem, providing access across all your devices.
+Both work the same way: the local notes stay the reference, and edits made on the phone come back through the application's own sync and a merge on the computer.
 
 ```mermaid
-graph LR
-    subgraph Version_Control[Version Control]
-        GL[Github/Gitlab]
+%%{init: {'flowchart': {'rankSpacing': 80, 'nodeSpacing': 60}}}%%
+flowchart TB
+    subgraph Cloud
+        JC(Joplin Cloud)
+        GH(Github/Gitlab)
+        AW(AnkiWeb)
     end
-
+    subgraph Phone
+        JM(Joplin Mobile)
+        AM(AnkiDroid)
+    end
     subgraph Computer
-        subgraph Terminal
-            K[Knowledge CLI]
-            G[Git]
-            K --- G
-        end
-        JD[Joplin Desktop]
-        K <--> JD
+        JD(Joplin Desktop)
+        G(Git)
+        AD(Anki Desktop)
+        K(Knowledge CLI)
     end
-
-    subgraph Joplin_Cloud[Joplin Cloud]
-        JC[Joplin Cloud]
-    end
-
-    subgraph Mobile
-        JM[Joplin Mobile]
-    end
-
-    JD <--> JC
-    JM <--> JC
-    G <--> GL
-```
-
-## Export to [Anki](https://apps.ankiweb.net/)
-
-The [Anki](https://apps.ankiweb.net/) integration enables one-way synchronization of notes for spaced repetition learning. Exported decks are imported into the Anki collection automatically using the official [anki Python library](https://dev-docs.ankiweb.net/en/latest/api-python.html) (Anki must be closed during import). The `anki_export_<deck_name>` files are the source of truth: cards whose note left the deck file or disappeared from `$K_DIR` are removed from the collection, so a deleted note never survives as a card. That removal runs at the end of `anki export`, and `anki clean` runs it on its own when the import could not.
-
-```mermaid
-graph LR
-    subgraph Computer
-        K[Knowledge CLI]
-        AD[Anki Desktop]
-        K -->|export .apkg| AD
-    end
+    JC <--> JM
+    AW <--> AM
+    JC <--> JD
+    GH <--> G
+    AW <--> AD
+    G --- K
+    JD <--> K
+    AD <--> K
+    classDef joplin fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+    classDef anki fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+    classDef git fill:#dcfce7,stroke:#16a34a,color:#14532d
+    class JM,JC,JD joplin
+    class AM,AW,AD anki
+    class GH,G git
 ```

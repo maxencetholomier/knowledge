@@ -22,7 +22,7 @@ See the [Architecture Guide](./docs/architecture.md) for how Knowledge integrate
 
 ### Optional Tools
 
-- **[Anki](https://apps.ankiweb.net/)**: For spaced repetition learning (`anki export` command)
+- **[Anki](https://apps.ankiweb.net/)**: For spaced repetition learning (`anki` commands)
 - **[Flameshot](https://github.com/flameshot-org/flameshot)**: For screenshots (`image` command)
 - **[Fzf](https://github.com/junegunn/fzf)**: For interactive fuzzy finding
 - **[Inkscape](https://inkscape.org/)**: For diagrams (`schema` command)

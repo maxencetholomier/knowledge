@@ -4,7 +4,6 @@ This document outlines planned features and improvements for the Knowledge CLI t
 
 ## New features
 
-- Make link with Anki bidirectional.
 - Make joplin command more robust to errors
 
 ## Documentation

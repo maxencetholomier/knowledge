@@ -52,6 +52,10 @@ Each deck file should contain a list of note filenames (one per line):
 
 Lines starting with # are treated as comments and ignored. Inline comments are also supported.
 
+Each Anki note carries a hidden Markdown field holding the note source. It is the field to
+edit from Anki: 'kl anki merge' reads it back, and the visible Back field is regenerated from
+it on the next export.
+
 After export, decks are automatically imported into your Anki collection using the
 official anki Python library. A backup of the collection is created in Anki's
 standard backups folder before each import. Anki must be closed during the import
