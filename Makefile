@@ -1,17 +1,20 @@
-.PHONY: build install test lint check
+.PHONY: help build install test lint check
 
-build:
+help: ## Show this help
+	@grep -E '^[a-z]+:.*## ' $(MAKEFILE_LIST) | awk -F ':.*## ' '{printf "  %-10s %s\n", $$1, $$2}'
+
+build: ## Build the kl binary in the repository root
 	go build -o kl ./cmd/kl
 
-install:
+install: ## Install kl into GOPATH/bin
 	go install ./cmd/kl
 
-test:
+test: ## Run all tests
 	go test ./...
 
-lint:
+lint: ## Run gofmt, go vet and staticcheck
 	test -z "$$(gofmt -l .)" || { gofmt -l .; exit 1; }
 	go vet ./...
 	go run honnef.co/go/tools/cmd/staticcheck@latest ./...
 
-check: lint test
+check: lint test ## Run lint and tests, same as CI
