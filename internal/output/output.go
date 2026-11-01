@@ -16,7 +16,7 @@ func PrintToStdout(line string, lineNumber int, total int) error {
 }
 
 func PrintToCache(text string) error {
-	file, err := os.OpenFile(config.DirCache, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+	file, err := os.OpenFile(config.CacheFile, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 	if err != nil {
 		return err
 	}

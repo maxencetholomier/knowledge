@@ -29,9 +29,9 @@ type Config struct {
 	JoplinNotebook     string   `json:"joplinNotebook"`
 }
 
-const DirCache = "/tmp/kl-search-cache"
-
 var Current Config
+
+var CacheFile = filepath.Join(os.TempDir(), "kl-search-cache")
 
 var joplinTokenPattern = regexp.MustCompile(`\s*"api.token":\s*"(.*)"`)
 
@@ -52,7 +52,19 @@ func Load() error {
 	}
 
 	applyDefaults(&Current)
+	initCacheFile()
 	return nil
+}
+
+func initCacheFile() {
+	cacheDir, err := os.UserCacheDir()
+	if err != nil {
+		return
+	}
+	if err := os.MkdirAll(filepath.Join(cacheDir, "kl"), 0755); err != nil {
+		return
+	}
+	CacheFile = filepath.Join(cacheDir, "kl", "search-cache")
 }
 
 func applyDefaults(c *Config) {

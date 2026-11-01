@@ -15,7 +15,7 @@ var deleteCmd = &cobra.Command{
 	Short:   "Delete a note by line number from cache",
 	Long:    `Delete a note by specifying its line number from the last search or find result cache.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		fileName, err := utils.ResolveFileName(args, config.DirCache)
+		fileName, err := utils.ResolveFileName(args, config.CacheFile)
 		if err != nil {
 			return err
 		}

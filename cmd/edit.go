@@ -17,7 +17,7 @@ var editCmd = &cobra.Command{
 	Short:   "Edit a note by line number from cache or timestamp",
 	RunE: func(cmd *cobra.Command, args []string) error {
 
-		fileName, err := utils.ResolveFileName(args, config.DirCache)
+		fileName, err := utils.ResolveFileName(args, config.CacheFile)
 		if err != nil {
 			return err
 		}
