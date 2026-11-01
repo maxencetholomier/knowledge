@@ -1,23 +1,19 @@
 module github.com/maxencetholomier/knowledge
 
-go 1.24.1
-
-toolchain go1.24.4
+go 1.26
 
 require (
-	github.com/npcnixel/genanki-go v0.0.0-20251208223537-b9b15a4e9586
-	github.com/spf13/cobra v1.8.1
+	github.com/alecthomas/chroma/v2 v2.27.0
+	github.com/npcnixel/genanki-go v0.0.0-20260305182613-460b4074eb38
+	github.com/russross/blackfriday/v2 v2.1.0
+	github.com/spf13/cobra v1.10.2
 )
 
 require (
-	github.com/alecthomas/chroma/v2 v2.21.1 // indirect
-	github.com/cpuguy83/go-md2man/v2 v2.0.4 // indirect
-	github.com/dlclark/regexp2 v1.11.5 // indirect
+	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
+	github.com/dlclark/regexp2/v2 v2.12.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
-	github.com/mattn/go-sqlite3 v1.14.24 // indirect
-	github.com/russross/blackfriday/v2 v2.1.0 // indirect
-	github.com/spf13/pflag v1.0.5 // indirect
-	golang.org/x/sys v0.41.0 // indirect
-	golang.org/x/term v0.40.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
+	github.com/mattn/go-sqlite3 v1.14.52 // indirect
+	github.com/spf13/pflag v1.0.10 // indirect
+	go.yaml.in/yaml/v3 v3.0.6 // indirect
 )
