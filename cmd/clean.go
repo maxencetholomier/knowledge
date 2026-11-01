@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
-	"sort"
 	"strings"
 
+	"github.com/maxencetholomier/knowledge/internal/anki"
 	"github.com/maxencetholomier/knowledge/internal/files"
 	"github.com/maxencetholomier/knowledge/internal/prompt"
 
@@ -86,10 +85,11 @@ func findDeckCleanups(pendingDeletions []string) ([]deckCleanup, error) {
 
 	var cleanups []deckCleanup
 	for _, deck := range deckFiles {
-		kept, removed, changed, err := cleanDeckLines(deck.Path, localNotes)
+		data, err := os.ReadFile(deck.Path)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to read deck file: %w", err)
 		}
+		kept, removed, changed := anki.CleanDeckLines(string(data), localNotes)
 		if !changed {
 			continue
 		}
@@ -106,7 +106,7 @@ func applyDeckCleanups(cleanups []deckCleanup) error {
 
 	totalRemoved := 0
 	for _, cleanup := range cleanups {
-		if err := os.WriteFile(cleanup.Deck.Path, []byte(deckContent(cleanup.Kept)), 0644); err != nil {
+		if err := os.WriteFile(cleanup.Deck.Path, []byte(anki.DeckContent(cleanup.Kept)), 0644); err != nil {
 			return fmt.Errorf("failed to write deck file '%s': %w", cleanup.Deck.Name, err)
 		}
 		fmt.Printf("✓ Cleaned deck '%s' (%d stale entries removed)\n", cleanup.Deck.Name, len(cleanup.Removed))
@@ -115,50 +115,6 @@ func applyDeckCleanups(cleanups []deckCleanup) error {
 
 	fmt.Printf("Updated %d deck file(s), removed %d stale entries.\n", len(cleanups), totalRemoved)
 	return nil
-}
-
-func cleanDeckLines(deckPath string, localNotes map[string]string) (kept, removed []string, changed bool, err error) {
-	data, err := os.ReadFile(deckPath)
-	if err != nil {
-		return nil, nil, false, fmt.Errorf("failed to read deck file: %w", err)
-	}
-
-	seen := make(map[string]bool)
-	for line := range strings.SplitSeq(string(data), "\n") {
-		trimmed := strings.TrimSpace(line)
-		if trimmed == "" {
-			continue
-		}
-		entry := trimmed
-		if idx := strings.Index(entry, " #"); idx != -1 {
-			entry = strings.TrimSpace(entry[:idx])
-		}
-		key := trimmed
-		if entry != "" && !strings.HasPrefix(entry, "#") {
-			key = entry
-			timestamp := strings.TrimSuffix(entry, ".md")
-			if _, exists := localNotes[timestamp]; !exists {
-				removed = append(removed, entry)
-				continue
-			}
-		}
-		if seen[key] {
-			continue
-		}
-		seen[key] = true
-		kept = append(kept, trimmed)
-	}
-
-	sort.Sort(sort.Reverse(sort.StringSlice(kept)))
-	changed = deckContent(kept) != string(data)
-	return kept, removed, changed, nil
-}
-
-func deckContent(lines []string) string {
-	if len(lines) == 0 {
-		return ""
-	}
-	return strings.Join(lines, "\n") + "\n"
 }
 
 func displayFilesToClean(emptyNotes, unlinkedImages []string, cleanups []deckCleanup) {
@@ -197,143 +153,45 @@ func deleteFiles(emptyNotes, unlinkedImages []string) error {
 }
 
 func findEmptyNotes() ([]string, error) {
-	scanner := files.NewScanner(DirZet).WithExtensions("md")
-	fileList, err := scanner.ListFiles()
+	fileList, err := files.NewScanner(DirZet).WithExtensions("md").ListFiles()
 	if err != nil {
 		return nil, err
 	}
 
 	var emptyNotes []string
 	for _, file := range fileList {
-		if err := file.LoadContent(); err != nil {
-			continue
-		}
-
-		lines := strings.Split(file.Content, "\n")
-		hasContent := false
-
-		for i, line := range lines {
-			line = strings.TrimSpace(line)
-			if line == "" {
-				continue
-			}
-
-			if i == 0 && strings.HasPrefix(line, "#") {
-				continue
-			}
-
-			hasContent = true
-			break
-		}
-
-		if !hasContent {
+		if err := file.LoadContent(); err == nil && files.IsEmptyNote(file.Content) {
 			emptyNotes = append(emptyNotes, file.Name)
 		}
 	}
-
 	return emptyNotes, nil
 }
 
 func findUnlinkedImages() ([]string, error) {
-	imageFiles, err := findImageFiles()
-	if err != nil {
-		return nil, err
-	}
-
-	if len(imageFiles) == 0 {
-		return []string{}, nil
-	}
-
-	linkedImages, err := findLinkedImages()
-	if err != nil {
-		return nil, err
-	}
-
-	var unlinkedImages []string
-	for _, image := range imageFiles {
-		isLinked := false
-		for _, linked := range linkedImages {
-			if image == linked {
-				isLinked = true
-				break
-			}
-		}
-		if !isLinked {
-			unlinkedImages = append(unlinkedImages, image)
-		}
-	}
-
-	return unlinkedImages, nil
-}
-
-func findImageFiles() ([]string, error) {
 	entries, err := os.ReadDir(DirZet)
 	if err != nil {
 		return nil, err
 	}
 
-	var imageFiles []string
-	imageExtensions := []string{".png", ".jpg", ".jpeg", ".gif", ".bmp", ".svg", ".webp"}
-
-	for _, entry := range entries {
-		if entry.IsDir() {
-			continue
-		}
-
-		name := entry.Name()
-		for _, ext := range imageExtensions {
-			if strings.HasSuffix(strings.ToLower(name), ext) {
-				imageFiles = append(imageFiles, name)
-				break
-			}
-		}
-	}
-
-	return imageFiles, nil
-}
-
-func findLinkedImages() ([]string, error) {
-	scanner := files.NewScanner(DirZet).WithExtensions("md")
-	fileList, err := scanner.ListFiles()
+	fileList, err := files.NewScanner(DirZet).WithExtensions("md").ListFiles()
 	if err != nil {
 		return nil, err
 	}
-
-	linkedImagesMap := make(map[string]bool)
-
-	markdownImagePattern := regexp.MustCompile(`!\[.*?\]\(([^)]+)\)`)
-	htmlImagePattern := regexp.MustCompile(`<img[^>]+src=["']([^"']+)["']`)
-
+	var contents []string
 	for _, file := range fileList {
-		if err := file.LoadContent(); err != nil {
-			continue
-		}
-
-		markdownMatches := markdownImagePattern.FindAllStringSubmatch(file.Content, -1)
-		for _, match := range markdownMatches {
-			if len(match) > 1 {
-				imagePath := match[1]
-				imageName := filepath.Base(imagePath)
-				linkedImagesMap[imageName] = true
-			}
-		}
-
-		htmlMatches := htmlImagePattern.FindAllStringSubmatch(file.Content, -1)
-		for _, match := range htmlMatches {
-			if len(match) > 1 {
-				imagePath := match[1]
-				imageName := filepath.Base(imagePath)
-				linkedImagesMap[imageName] = true
-			}
+		if err := file.LoadContent(); err == nil {
+			contents = append(contents, file.Content)
 		}
 	}
+	linked := files.LinkedImages(contents...)
 
-	var linkedImages []string
-	for imageName := range linkedImagesMap {
-		linkedImages = append(linkedImages, imageName)
+	var unlinked []string
+	for _, entry := range entries {
+		if !entry.IsDir() && files.IsImage(entry.Name()) && !linked[entry.Name()] {
+			unlinked = append(unlinked, entry.Name())
+		}
 	}
-
-	return linkedImages, nil
+	return unlinked, nil
 }
 
 func init() {
