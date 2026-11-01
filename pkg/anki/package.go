@@ -65,11 +65,3 @@ func (ap *AnkiPackage) WriteToFile(outputPath string) error {
 	}
 	return nil
 }
-
-func (ap *AnkiPackage) GetDeckNoteCount(deckName string) int {
-	deck, exists := ap.decks[deckName]
-	if !exists {
-		return 0
-	}
-	return len(deck.Notes)
-}

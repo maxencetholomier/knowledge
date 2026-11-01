@@ -120,13 +120,6 @@ func GetTerminal() string {
 	return terminal
 }
 
-func GetTerminalForVideo() string {
-	if terminal == "" {
-		return "kitty"
-	}
-	return terminal
-}
-
 func GetTerminalParams() []string {
 	if len(terminalParams) == 0 {
 		return []string{"--execute"}

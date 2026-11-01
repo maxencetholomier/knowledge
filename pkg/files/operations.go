@@ -60,26 +60,6 @@ func GetLastUpdates(DirZet string) (map[string]time.Time, error) {
 	return result, nil
 }
 
-func GetLastUpdate(fileName string, DirZet string) (time.Time, error) {
-	cmd := exec.Command("git", "-C", DirZet, "log", "-1", "--format=%ad", "--date=unix", fileName)
-	var last_update time.Time
-
-	zet_last_update, err := cmd.Output()
-	if err != nil {
-		return last_update, err
-	}
-
-	var unixTimestamp int64
-	_, err = fmt.Sscanf(string(zet_last_update), "%d", &unixTimestamp)
-	if err != nil {
-		return last_update, err
-	}
-
-	last_update = time.Unix(unixTimestamp, 0)
-
-	return last_update, nil
-}
-
 func GetFileType(filename string) string {
 	if filename == "" {
 		return filename

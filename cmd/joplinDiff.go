@@ -66,14 +66,8 @@ func collectDiff(localNotes, joplinNotes map[string]string) (diffResult, error) 
 		joplinTimestamps = append(joplinTimestamps, timestamp)
 	}
 
-	onlyLocal, err := utils.ANotInB(localTimestamps, joplinTimestamps)
-	if err != nil {
-		return diffResult{}, err
-	}
-	onlyJoplin, err := utils.ANotInB(joplinTimestamps, localTimestamps)
-	if err != nil {
-		return diffResult{}, err
-	}
+	onlyLocal := utils.ANotInB(localTimestamps, joplinTimestamps)
+	onlyJoplin := utils.ANotInB(joplinTimestamps, localTimestamps)
 	common := getCommonTimestamps(localTimestamps, joplinTimestamps)
 
 	if len(onlyLocal) > 0 {

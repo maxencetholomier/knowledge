@@ -10,13 +10,12 @@ func ItemInSlice(slice []string, item string) bool {
 	return false
 }
 
-func ANotInB(A, B []string) ([]string, error) {
-	ids := []string{}
-
-	for _, valueA := range A {
-		if !ItemInSlice(B, valueA) {
-			ids = append(ids, valueA)
+func ANotInB(a, b []string) []string {
+	var ids []string
+	for _, value := range a {
+		if !ItemInSlice(b, value) {
+			ids = append(ids, value)
 		}
 	}
-	return ids, nil
+	return ids
 }

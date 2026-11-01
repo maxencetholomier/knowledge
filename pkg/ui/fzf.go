@@ -31,23 +31,8 @@ func NewFzfConfigWithCommand(command string) *FzfConfig {
 	}
 }
 
-func (f *FzfConfig) WithCommand(cmd string) *FzfConfig {
-	f.Command = cmd
-	return f
-}
-
 func (f *FzfConfig) WithOptions(opts ...string) *FzfConfig {
 	f.Options = append(f.Options, opts...)
-	return f
-}
-
-func (f *FzfConfig) WithPreview(preview string) *FzfConfig {
-	f.Preview = preview
-	return f
-}
-
-func (f *FzfConfig) WithDimensions(dims string) *FzfConfig {
-	f.Dimensions = dims
 	return f
 }
 

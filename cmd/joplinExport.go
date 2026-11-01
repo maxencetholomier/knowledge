@@ -143,10 +143,7 @@ func collectNotesToExport(notebookId string) ([]localNoteToExport, error) {
 		return nil, err
 	}
 
-	toExport, err := utils.ANotInB(fileTimestamps, joplinTimestamps)
-	if err != nil {
-		return nil, err
-	}
+	toExport := utils.ANotInB(fileTimestamps, joplinTimestamps)
 
 	var result []localNoteToExport
 	for _, timestamp := range toExport {

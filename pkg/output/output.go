@@ -15,28 +15,6 @@ func PrintToStdout(line string, lineNumber int, total int) error {
 	return nil
 }
 
-func PrintCache() error {
-	file, err := os.Open(config.DirCache)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-
-	for scanner.Scan() {
-		line := scanner.Text()
-		fmt.Println(line)
-	}
-
-	err = scanner.Err()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func PrintToCache(text string) error {
 	file, err := os.OpenFile(config.DirCache, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 	if err != nil {
