@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -63,10 +64,8 @@ Also clean the anki_export_* deck files:
 			return nil
 		}
 
-		deletedCount := deleteFiles(emptyNotes, unlinkedImages)
-		fmt.Printf("Successfully deleted %d files.\n", deletedCount)
-
-		return applyDeckCleanups(deckCleanups)
+		deleteErr := deleteFiles(emptyNotes, unlinkedImages)
+		return errors.Join(deleteErr, applyDeckCleanups(deckCleanups))
 	},
 }
 
@@ -184,26 +183,17 @@ func displayFilesToClean(emptyNotes, unlinkedImages []string, cleanups []deckCle
 	}
 }
 
-func deleteFiles(emptyNotes, unlinkedImages []string) int {
-	deletedCount := 0
-
-	for _, note := range emptyNotes {
-		if err := os.Remove(filepath.Join(DirZet, note)); err != nil {
-			fmt.Printf("Error deleting %s: %v\n", note, err)
-		} else {
-			deletedCount++
+func deleteFiles(emptyNotes, unlinkedImages []string) error {
+	toDelete := append(emptyNotes, unlinkedImages...)
+	failed := 0
+	for _, name := range toDelete {
+		if err := os.Remove(filepath.Join(DirZet, name)); err != nil {
+			fmt.Printf("Error deleting %s: %v\n", name, err)
+			failed++
 		}
 	}
-
-	for _, image := range unlinkedImages {
-		if err := os.Remove(filepath.Join(DirZet, image)); err != nil {
-			fmt.Printf("Error deleting %s: %v\n", image, err)
-		} else {
-			deletedCount++
-		}
-	}
-
-	return deletedCount
+	fmt.Printf("Deleted %d files.\n", len(toDelete)-failed)
+	return batchError(failed, len(toDelete), "deletions")
 }
 
 func findEmptyNotes() ([]string, error) {

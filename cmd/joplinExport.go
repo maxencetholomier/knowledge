@@ -79,11 +79,11 @@ func exportNotesToJoplin(notes []localNoteToExport, notebookId string) error {
 
 	printExportSummary(notes, noteErrors, resourceErrors)
 
-	return nil
+	return batchError(len(noteErrors)+len(resourceErrors), len(notes), "note exports")
 }
 
 func printExportSummary(notes []localNoteToExport, noteErrors, resourceErrors []exportError) {
-	fmt.Printf("\nSuccessfully exported %d notes to Joplin.\n", len(notes)-len(noteErrors))
+	fmt.Printf("\nExported %d notes to Joplin.\n", len(notes)-len(noteErrors))
 	if len(noteErrors) > 0 {
 		fmt.Printf("Warning: %d note(s) could not be exported:\n", len(noteErrors))
 		for _, e := range noteErrors {

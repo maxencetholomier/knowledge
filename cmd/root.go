@@ -24,6 +24,7 @@ var rootCmd = &cobra.Command{
 	Long: `Knowledge is a CLI tool for managing markdown-based notes in a zettelkasten-style system.
 It provides commands for creating, searching, editing, and organizing notes with support for
 interactive fuzzy finding (fzf) and integration with external tools like Joplin.`,
+	SilenceUsage: true,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		if err := config.Load(); err != nil {
 			return fmt.Errorf("configuration error: %w", err)
@@ -58,6 +59,13 @@ func fzfConfig() *ui.FzfConfig {
 		}
 	}
 	return &ui.FzfConfig{Command: FzfEnv, Options: options, BaseDir: DirZet}
+}
+
+func batchError(failed, total int, what string) error {
+	if failed == 0 {
+		return nil
+	}
+	return fmt.Errorf("%d of %d %s failed", failed, total, what)
 }
 
 func envOr(value, envName string) string {

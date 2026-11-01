@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -46,28 +47,29 @@ var joplinImportCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		var importErr error
 		if confirmed {
-			downloadResources(notesToImport)
-			writeNotesToFiles(notesToImport)
+			importErr = errors.Join(downloadResources(notesToImport), writeNotesToFiles(notesToImport))
 		}
 
 		notesToDelete, err := collectLocalNotesInJoplinTrash()
 		if err != nil {
-			return err
+			return errors.Join(importErr, err)
 		}
 		confirmed, err = confirmDeleteLocal(notesToDelete)
 		if err != nil {
-			return err
+			return errors.Join(importErr, err)
 		}
 		if confirmed {
-			deleteLocalNotes(notesToDelete)
+			return errors.Join(importErr, deleteLocalNotes(notesToDelete))
 		}
 
-		return nil
+		return importErr
 	},
 }
 
-func downloadResources(notes []localNote) {
+func downloadResources(notes []localNote) error {
+	failed := 0
 	for _, note := range notes {
 		timestamp := strings.TrimSuffix(note.fileName, ".md")
 		if err := joplin.DownloadLinkedResources(note.body, timestamp, DirZet); err != nil {
@@ -75,22 +77,26 @@ func downloadResources(notes []localNote) {
 				fmt.Printf("Warning: Some resources not found for %s\n", timestamp)
 			} else {
 				fmt.Printf("Error downloading resources for %s: %v\n", timestamp, err)
+				failed++
 			}
 		}
 	}
+	return batchError(failed, len(notes), "resource downloads")
 }
 
-func writeNotesToFiles(notesToImport []localNote) {
+func writeNotesToFiles(notesToImport []localNote) error {
 	fmt.Printf("\nImporting %d notes...\n", len(notesToImport))
 
+	failed := 0
 	for _, note := range notesToImport {
 		if err := files.Create(DirZet+"/"+note.fileName, note.fileContent); err != nil {
 			fmt.Printf("Error creating %s: %v\n", strings.TrimSuffix(note.fileName, ".md"), err)
-			continue
+			failed++
 		}
 	}
 
-	fmt.Printf("\nSuccessfully imported %d notes from Joplin.\n", len(notesToImport))
+	fmt.Printf("\nImported %d notes from Joplin.\n", len(notesToImport)-failed)
+	return batchError(failed, len(notesToImport), "note imports")
 }
 
 func confirmImport(notesToImport []localNote, notebookName string) (bool, error) {
@@ -197,18 +203,19 @@ func confirmDeleteLocal(notes []localNote) (bool, error) {
 	return confirmed, nil
 }
 
-func deleteLocalNotes(notes []localNote) {
+func deleteLocalNotes(notes []localNote) error {
 	fmt.Printf("\nDeleting %d local notes...\n", len(notes))
-	deleted := 0
+	failed := 0
 	for _, note := range notes {
 		if err := os.Remove(DirZet + "/" + note.fileName); err != nil {
 			fmt.Printf("  ✗ Failed to delete %s: %v\n", note.fileName, err)
+			failed++
 		} else {
 			fmt.Printf("  ✓ Deleted %s - %s\n", strings.TrimSuffix(note.fileName, ".md"), note.title)
-			deleted++
 		}
 	}
-	fmt.Printf("\nDeleted %d local notes.\n", deleted)
+	fmt.Printf("\nDeleted %d local notes.\n", len(notes)-failed)
+	return batchError(failed, len(notes), "deletions")
 }
 
 func init() {

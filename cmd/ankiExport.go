@@ -123,7 +123,7 @@ func exportDecks(deckFiles []deckFile, importIntoAnki bool) error {
 	printAnkiExportSummary(deckResults)
 
 	if importIntoAnki && len(deckResults) > 0 {
-		importDecksIntoAnki(deckResults)
+		return importDecksIntoAnki(deckResults)
 	}
 
 	return nil
@@ -190,11 +190,12 @@ func sortedDeckNames(deckResults map[string]deckExportResult) []string {
 	return names
 }
 
-func importDecksIntoAnki(deckResults map[string]deckExportResult) {
+func importDecksIntoAnki(deckResults map[string]deckExportResult) error {
+	manualHint := "import the .apkg files manually into Anki, then run 'kl anki clean' to drop orphan notes"
+
 	collectionPath, err := anki.FindCollection()
 	if err != nil {
-		fmt.Printf("\nWarning: %v\nImport the .apkg files manually into Anki.\n", err)
-		return
+		return fmt.Errorf("%w, %s", err, manualHint)
 	}
 
 	deckNames := sortedDeckNames(deckResults)
@@ -203,8 +204,7 @@ func importDecksIntoAnki(deckResults map[string]deckExportResult) {
 	for _, name := range deckNames {
 		path, err := filepath.Abs(deckResults[name].OutputPath)
 		if err != nil {
-			fmt.Printf("Warning: Failed to resolve path for deck '%s': %v\n", name, err)
-			continue
+			return fmt.Errorf("failed to resolve path for deck '%s': %w", name, err)
 		}
 		apkgPaths = append(apkgPaths, path)
 	}
@@ -213,9 +213,7 @@ func importDecksIntoAnki(deckResults map[string]deckExportResult) {
 	fmt.Printf("\nImporting into Anki profile '%s'...\n", profile)
 
 	if err := anki.ImportPackages(collectionPath, apkgPaths); err != nil {
-		fmt.Printf("Warning: Anki import failed: %v\n", err)
-		fmt.Println("Import the .apkg files manually into Anki, then run 'kl anki clean' to drop orphan notes.")
-		return
+		return fmt.Errorf("anki import failed: %w, %s", err, manualHint)
 	}
 
 	fmt.Printf("- Imported into Anki: %d deck(s)\n", len(apkgPaths))
@@ -225,9 +223,7 @@ func importDecksIntoAnki(deckResults map[string]deckExportResult) {
 		specs = append(specs, anki.DeckSpec{Name: name, Timestamps: deckResults[name].Timestamps})
 	}
 
-	if err := pruneAnkiDecks(collectionPath, specs); err != nil {
-		fmt.Printf("Warning: %v\n", err)
-	}
+	return pruneAnkiDecks(collectionPath, specs)
 }
 
 func pruneAnkiDecks(collectionPath string, specs []anki.DeckSpec) error {

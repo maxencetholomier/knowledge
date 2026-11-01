@@ -81,41 +81,53 @@ data loss may occur as the older version will be replaced by the newer one.`,
 			return nil
 		}
 
-		applyMergeActions(mergeActions, notebookId)
-		return nil
+		return applyMergeActions(mergeActions, notebookId)
 	},
 }
 
-func applyMergeActions(mergeActions []mergeAction, notebookId string) {
+func applyMergeActions(mergeActions []mergeAction, notebookId string) error {
 	fmt.Printf("\nSynchronizing %d notes...\n", len(mergeActions))
 
+	failed := 0
 	for _, action := range mergeActions {
+		var err error
 		if action.action == merge.Pull {
-			fileContent := "# " + action.joplinTitle + "\n\n" + joplin.StripLeadingHeading(action.joplinBody)
-			if err := files.Create(DirZet+"/"+action.fileName, joplin.ReplaceIdsToLink(fileContent)); err != nil {
-				fmt.Printf("Error pulling %s: %v\n", action.fileName, err)
-				continue
-			}
-		} else if action.action == merge.Push {
-			body, err := os.ReadFile(DirZet + "/" + action.fileName)
-			if err != nil {
-				fmt.Printf("Error reading %s: %v\n", action.fileName, err)
-				continue
-			}
-
-			err = joplin.SendResourceFromBody(string(body), DirZet)
-			if err != nil {
-				fmt.Printf("Error posting resources for %s: %v\n", action.fileName, err)
-			}
-
-			query := joplin.WriteQuery{Method: joplin.PUT, FileName: action.fileName, DirZet: DirZet, NotebookId: notebookId}
-			if err = joplin.Send(query); err != nil {
-				fmt.Printf("Error pushing %s: %v\n", action.fileName, err)
-				continue
-			}
+			err = pullFromJoplin(action)
+		} else {
+			err = pushToJoplin(action, notebookId)
+		}
+		if err != nil {
+			fmt.Printf("Error: %v\n", err)
+			failed++
 		}
 	}
-	fmt.Printf("\nSuccessfully synchronized %d notes.\n", len(mergeActions))
+	fmt.Printf("\nSynchronized %d notes.\n", len(mergeActions)-failed)
+	return batchError(failed, len(mergeActions), "synchronizations")
+}
+
+func pullFromJoplin(action mergeAction) error {
+	fileContent := "# " + action.joplinTitle + "\n\n" + joplin.StripLeadingHeading(action.joplinBody)
+	if err := files.Create(DirZet+"/"+action.fileName, joplin.ReplaceIdsToLink(fileContent)); err != nil {
+		return fmt.Errorf("pulling %s: %w", action.fileName, err)
+	}
+	return nil
+}
+
+func pushToJoplin(action mergeAction, notebookId string) error {
+	body, err := os.ReadFile(DirZet + "/" + action.fileName)
+	if err != nil {
+		return fmt.Errorf("reading %s: %w", action.fileName, err)
+	}
+
+	if err := joplin.SendResourceFromBody(string(body), DirZet); err != nil {
+		return fmt.Errorf("posting resources for %s: %w", action.fileName, err)
+	}
+
+	query := joplin.WriteQuery{Method: joplin.PUT, FileName: action.fileName, DirZet: DirZet, NotebookId: notebookId}
+	if err := joplin.Send(query); err != nil {
+		return fmt.Errorf("pushing %s: %w", action.fileName, err)
+	}
+	return nil
 }
 
 func getMergeActions(joplinNotes []joplin.Note, forceAction merge.Direction) ([]mergeAction, error) {

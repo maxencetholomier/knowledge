@@ -144,25 +144,26 @@ func applyAnkiImports(collectionPath string, imports []ankiImport, deckFiles []d
 	}
 
 	var adoptions []anki.Adoption
-	imported := 0
+	failed := 0
 	for _, imp := range imports {
 		fileName := imp.timestamp + ".md"
 		if err := files.Create(filepath.Join(DirZet, fileName), imp.content); err != nil {
 			fmt.Printf("Error creating %s: %v\n", fileName, err)
+			failed++
 			continue
 		}
 
 		if err := appendToDeckFile(deckPaths[imp.note.Deck], fileName, imp.note.Front); err != nil {
 			fmt.Printf("Error updating deck file for %s: %v\n", fileName, err)
+			failed++
 		}
 
 		if imp.adopt {
 			adoptions = append(adoptions, anki.Adoption{ID: imp.note.ID, Timestamp: imp.timestamp})
 		}
-		imported++
 	}
 
-	fmt.Printf("\nImported %d note(s) from Anki.\n", imported)
+	fmt.Printf("\nImported %d note(s) from Anki.\n", len(imports)-failed)
 
 	if len(adoptions) > 0 {
 		if err := anki.AdoptNotes(collectionPath, adoptions); err != nil {
@@ -171,7 +172,7 @@ func applyAnkiImports(collectionPath string, imports []ankiImport, deckFiles []d
 		fmt.Printf("- Tagged in Anki: %d note(s)\n", len(adoptions))
 	}
 
-	return nil
+	return batchError(failed, len(imports), "note imports")
 }
 
 func appendToDeckFile(deckPath, fileName, title string) error {

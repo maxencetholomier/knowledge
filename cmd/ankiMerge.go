@@ -187,37 +187,39 @@ func confirmAnkiMerge(actions []ankiMergeAction) bool {
 
 func applyAnkiMergeActions(actions []ankiMergeAction, deckFiles []deckFile) error {
 	decksToPush := make(map[string]bool)
-	pulled := 0
+	pulls, failed := 0, 0
 	for _, action := range actions {
 		if action.action == merge.Push {
 			decksToPush[action.deck] = true
 			continue
 		}
 
+		pulls++
 		if err := files.Create(filepath.Join(DirZet, action.fileName), action.remote+"\n"); err != nil {
 			fmt.Printf("Error pulling %s: %v\n", action.fileName, err)
-			continue
-		}
-		pulled++
-	}
-
-	if pulled > 0 {
-		fmt.Printf("\nPulled %d note(s) from Anki.\n", pulled)
-	}
-
-	if len(decksToPush) == 0 {
-		return nil
-	}
-
-	var toExport []deckFile
-	for _, deck := range deckFiles {
-		if decksToPush[deck.Name] {
-			toExport = append(toExport, deck)
+			failed++
 		}
 	}
 
-	fmt.Printf("\nPushing %d deck(s) to Anki: %s\n", len(toExport), strings.Join(deckNames(toExport), ", "))
-	return exportDecks(toExport, true)
+	if pulls > 0 {
+		fmt.Printf("\nPulled %d note(s) from Anki.\n", pulls-failed)
+	}
+
+	if len(decksToPush) > 0 {
+		var toExport []deckFile
+		for _, deck := range deckFiles {
+			if decksToPush[deck.Name] {
+				toExport = append(toExport, deck)
+			}
+		}
+
+		fmt.Printf("\nPushing %d deck(s) to Anki: %s\n", len(toExport), strings.Join(deckNames(toExport), ", "))
+		if err := exportDecks(toExport, true); err != nil {
+			return err
+		}
+	}
+
+	return batchError(failed, pulls, "pulls")
 }
 
 func init() {
