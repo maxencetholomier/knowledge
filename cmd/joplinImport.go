@@ -8,7 +8,6 @@ import (
 
 	"github.com/maxencetholomier/knowledge/internal/files"
 	"github.com/maxencetholomier/knowledge/internal/joplin"
-	"github.com/maxencetholomier/knowledge/internal/prompt"
 	"github.com/maxencetholomier/knowledge/internal/utils"
 
 	"github.com/spf13/cobra"
@@ -120,7 +119,7 @@ func confirmImport(notesToImport []localNote, notebookName string) (bool, error)
 		}
 	}
 
-	confirmed, err := prompt.Confirm("Proceed with import?")
+	confirmed, err := confirm("Proceed with import?")
 	if err != nil {
 		return false, err
 	}
@@ -193,7 +192,7 @@ func confirmDeleteLocal(notes []localNote) (bool, error) {
 		fmt.Printf("  • %s - %s\n", timestamp, note.title)
 	}
 
-	confirmed, err := prompt.Confirm("Delete these local notes?")
+	confirmed, err := confirm("Delete these local notes?")
 	if err != nil {
 		return false, err
 	}

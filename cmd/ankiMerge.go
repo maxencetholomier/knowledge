@@ -10,7 +10,6 @@ import (
 	"github.com/maxencetholomier/knowledge/internal/anki"
 	"github.com/maxencetholomier/knowledge/internal/files"
 	"github.com/maxencetholomier/knowledge/internal/merge"
-	"github.com/maxencetholomier/knowledge/internal/prompt"
 
 	"github.com/spf13/cobra"
 )
@@ -177,7 +176,7 @@ func confirmAnkiMerge(actions []ankiMergeAction) bool {
 
 	fmt.Printf("\nSummary: %d note(s) to pull from Anki, %d note(s) to push to Anki\n", pullCount, pushCount)
 
-	confirmed, err := prompt.Confirm("Proceed with synchronization?")
+	confirmed, err := confirm("Proceed with synchronization?")
 	if err != nil || !confirmed {
 		fmt.Println("Synchronization cancelled.")
 		return false
@@ -230,7 +229,5 @@ func init() {
 		"push all notes from local to Anki, ignoring timestamps")
 	ankiMergeCmd.Flags().BoolVar(&ankiMergeForceAnki, "force-anki", false,
 		"pull all notes from Anki to local, ignoring timestamps")
-	ankiMergeCmd.Flags().BoolVarP(&ankiAssumeYes, "yes", "y", false,
-		"remove orphan Anki notes after a push without asking for confirmation")
 	ankiMergeCmd.RegisterFlagCompletionFunc("deck", completeDeckNames)
 }

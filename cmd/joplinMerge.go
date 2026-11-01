@@ -9,7 +9,6 @@ import (
 	"github.com/maxencetholomier/knowledge/internal/files"
 	"github.com/maxencetholomier/knowledge/internal/joplin"
 	"github.com/maxencetholomier/knowledge/internal/merge"
-	"github.com/maxencetholomier/knowledge/internal/prompt"
 
 	"github.com/spf13/cobra"
 )
@@ -220,7 +219,7 @@ func confirmMerge(mergeActions []mergeAction, notebookName string) (bool, error)
 		fmt.Printf("Notes pushed to Joplin will be moved to notebook '%s'\n", notebookName)
 	}
 
-	confirmed, err := prompt.Confirm("Proceed with synchronization?")
+	confirmed, err := confirm("Proceed with synchronization?")
 	if err != nil {
 		return false, err
 	}

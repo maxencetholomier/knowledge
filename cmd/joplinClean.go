@@ -6,7 +6,6 @@ import (
 
 	"github.com/maxencetholomier/knowledge/internal/files"
 	"github.com/maxencetholomier/knowledge/internal/joplin"
-	"github.com/maxencetholomier/knowledge/internal/prompt"
 
 	"github.com/spf13/cobra"
 )
@@ -92,7 +91,7 @@ func confirmCleaning(notes []joplin.Note) (bool, error) {
 		}
 	}
 
-	confirmed, err := prompt.Confirm("Do you want to delete these notes from Joplin?")
+	confirmed, err := confirm("Do you want to delete these notes from Joplin?")
 	if err != nil {
 		return false, err
 	}

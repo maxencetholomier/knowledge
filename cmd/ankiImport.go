@@ -8,7 +8,6 @@ import (
 
 	"github.com/maxencetholomier/knowledge/internal/anki"
 	"github.com/maxencetholomier/knowledge/internal/files"
-	"github.com/maxencetholomier/knowledge/internal/prompt"
 	"github.com/maxencetholomier/knowledge/internal/utils"
 
 	"github.com/spf13/cobra"
@@ -125,11 +124,7 @@ func confirmAnkiImport(imports []ankiImport) bool {
 		fmt.Printf("  • %s - %s (deck: %s)%s\n", imp.timestamp, imp.note.Front, imp.note.Deck, suffix)
 	}
 
-	if ankiAssumeYes {
-		return true
-	}
-
-	confirmed, err := prompt.Confirm("Proceed with import?")
+	confirmed, err := confirm("Proceed with import?")
 	if err != nil || !confirmed {
 		fmt.Println("Import cancelled.")
 		return false
@@ -199,6 +194,5 @@ func appendToDeckFile(deckPath, fileName, title string) error {
 func init() {
 	ankiCmd.AddCommand(ankiImportCmd)
 	ankiImportCmd.Flags().StringSliceVar(&ankiDecks, "deck", nil, "import only from the given deck(s) (repeatable)")
-	ankiImportCmd.Flags().BoolVarP(&ankiAssumeYes, "yes", "y", false, "import without asking for confirmation")
 	ankiImportCmd.RegisterFlagCompletionFunc("deck", completeDeckNames)
 }

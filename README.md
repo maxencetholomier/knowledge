@@ -38,6 +38,13 @@ For a quick, hands-on walkthrough, see the [Comprehensive Example](./docs/compre
 
 For detailed usage examples and workflows, see [Usage Guide](./docs/usage.md).
 
+## Development
+
+```
+make check     # gofmt, go vet, staticcheck and tests, same as CI
+make install   # build and install kl into GOPATH/bin
+```
+
 ## Roadmap
 
 See the [Roadmap](./docs/roadmap.md) for planned features and improvements.

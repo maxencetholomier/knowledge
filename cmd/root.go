@@ -3,8 +3,10 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"runtime/debug"
 
 	"github.com/maxencetholomier/knowledge/internal/config"
+	"github.com/maxencetholomier/knowledge/internal/prompt"
 	"github.com/maxencetholomier/knowledge/internal/ui"
 	"github.com/spf13/cobra"
 )
@@ -12,6 +14,7 @@ import (
 var FzfFlag bool
 var NoFzfFlag bool
 var DirZetFlag string
+var AssumeYes bool
 
 var Fzf bool
 var FzfEnv string
@@ -25,6 +28,7 @@ var rootCmd = &cobra.Command{
 It provides commands for creating, searching, editing, and organizing notes with support for
 interactive fuzzy finding (fzf) and integration with external tools like Joplin.`,
 	SilenceUsage: true,
+	Version:      version(),
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		if err := config.Load(); err != nil {
 			return fmt.Errorf("configuration error: %w", err)
@@ -61,6 +65,29 @@ func fzfConfig() *ui.FzfConfig {
 	return &ui.FzfConfig{Command: FzfEnv, Options: options, BaseDir: DirZet}
 }
 
+func confirm(question string) (bool, error) {
+	if AssumeYes {
+		return true, nil
+	}
+	return prompt.Confirm(question)
+}
+
+func version() string {
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		return "unknown"
+	}
+	if info.Main.Version != "" && info.Main.Version != "(devel)" {
+		return info.Main.Version
+	}
+	for _, setting := range info.Settings {
+		if setting.Key == "vcs.revision" {
+			return setting.Value[:min(12, len(setting.Value))]
+		}
+	}
+	return info.Main.Version
+}
+
 func batchError(failed, total int, what string) error {
 	if failed == 0 {
 		return nil
@@ -79,6 +106,7 @@ func Execute() {
 	rootCmd.PersistentFlags().BoolVarP(&FzfFlag, "fzf", "f", false, "activate fzf")
 	rootCmd.PersistentFlags().BoolVarP(&NoFzfFlag, "no-fzf", "z", false, "deactivate fzf")
 	rootCmd.PersistentFlags().StringVarP(&DirZetFlag, "dir", "d", "", "define zet repo")
+	rootCmd.PersistentFlags().BoolVarP(&AssumeYes, "yes", "y", false, "answer yes to every confirmation")
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}

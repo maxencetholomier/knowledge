@@ -11,7 +11,6 @@ import (
 	"github.com/maxencetholomier/knowledge/internal/anki"
 	"github.com/maxencetholomier/knowledge/internal/config"
 	"github.com/maxencetholomier/knowledge/internal/files"
-	"github.com/maxencetholomier/knowledge/internal/prompt"
 
 	"github.com/spf13/cobra"
 )
@@ -99,7 +98,6 @@ The 'trash' deck is never exported nor pruned unless it is asked for explicitly 
 
 var ankiNoImport bool
 var ankiDecks []string
-var ankiAssumeYes bool
 
 const trashDeck = "trash"
 
@@ -245,12 +243,10 @@ func pruneAnkiDecks(collectionPath string, specs []anki.DeckSpec) error {
 		noteIDs = append(noteIDs, orphan.ID)
 	}
 
-	if !ankiAssumeYes {
-		confirmed, err := prompt.Confirm("Do you want to remove these notes from Anki?")
-		if err != nil || !confirmed {
-			fmt.Println("Orphan notes kept.")
-			return nil
-		}
+	confirmed, err := confirm("Do you want to remove these notes from Anki?")
+	if err != nil || !confirmed {
+		fmt.Println("Orphan notes kept.")
+		return nil
 	}
 
 	if err := anki.RemoveNotes(collectionPath, noteIDs); err != nil {
@@ -340,8 +336,6 @@ func init() {
 	ankiExportCmd.Flags().BoolVar(&ankiNoImport, "no-import", false, "skip the import into Anki, only export .apkg files")
 	ankiExportCmd.Flags().StringSliceVar(&ankiDecks, "deck", nil,
 		"export only the given deck(s), matching anki_export_<name> (repeatable)")
-	ankiExportCmd.Flags().BoolVarP(&ankiAssumeYes, "yes", "y", false,
-		"remove orphan Anki notes without asking for confirmation")
 	ankiExportCmd.RegisterFlagCompletionFunc("deck", completeDeckNames)
 }
 

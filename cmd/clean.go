@@ -9,7 +9,6 @@ import (
 
 	"github.com/maxencetholomier/knowledge/internal/anki"
 	"github.com/maxencetholomier/knowledge/internal/files"
-	"github.com/maxencetholomier/knowledge/internal/prompt"
 
 	"github.com/spf13/cobra"
 )
@@ -54,7 +53,7 @@ Also clean the anki_export_* deck files:
 
 		displayFilesToClean(emptyNotes, unlinkedImages, deckCleanups)
 
-		confirmed, err := prompt.Confirm("Do you want to apply this cleanup?")
+		confirmed, err := confirm("Do you want to apply this cleanup?")
 		if err != nil {
 			return err
 		}

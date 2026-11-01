@@ -70,6 +70,5 @@ func deckSpecsFromFiles(deckFiles []deckFile) ([]anki.DeckSpec, error) {
 func init() {
 	ankiCmd.AddCommand(ankiCleanCmd)
 	ankiCleanCmd.Flags().StringSliceVar(&ankiDecks, "deck", nil, "clean only the given deck(s) (repeatable)")
-	ankiCleanCmd.Flags().BoolVarP(&ankiAssumeYes, "yes", "y", false, "remove orphan notes without confirmation")
 	ankiCleanCmd.RegisterFlagCompletionFunc("deck", completeDeckNames)
 }

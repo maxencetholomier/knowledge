@@ -7,7 +7,6 @@ import (
 
 	"github.com/maxencetholomier/knowledge/internal/files"
 	"github.com/maxencetholomier/knowledge/internal/joplin"
-	"github.com/maxencetholomier/knowledge/internal/prompt"
 	"github.com/maxencetholomier/knowledge/internal/utils"
 
 	"github.com/spf13/cobra"
@@ -118,7 +117,7 @@ func confirmExport(notes []localNoteToExport, notebookName string) (bool, error)
 		}
 	}
 
-	confirmed, err := prompt.Confirm("Proceed with export?")
+	confirmed, err := confirm("Proceed with export?")
 	if err != nil {
 		return false, err
 	}
