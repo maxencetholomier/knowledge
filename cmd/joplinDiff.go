@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/maxencetholomier/knowledge/pkg/files"
-	"github.com/maxencetholomier/knowledge/pkg/joplin"
-	"github.com/maxencetholomier/knowledge/pkg/merge"
+	"github.com/maxencetholomier/knowledge/internal/files"
+	"github.com/maxencetholomier/knowledge/internal/joplin"
+	"github.com/maxencetholomier/knowledge/internal/merge"
 
 	"github.com/spf13/cobra"
 )

@@ -2,7 +2,7 @@ package ui
 
 import (
 	"fmt"
-	"github.com/maxencetholomier/knowledge/pkg/files"
+	"github.com/maxencetholomier/knowledge/internal/files"
 	"os/exec"
 	"strings"
 )

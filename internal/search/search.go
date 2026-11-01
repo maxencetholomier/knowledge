@@ -1,7 +1,7 @@
 package search
 
 import (
-	"github.com/maxencetholomier/knowledge/pkg/files"
+	"github.com/maxencetholomier/knowledge/internal/files"
 	"os/exec"
 	"regexp"
 )

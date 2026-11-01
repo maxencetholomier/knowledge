@@ -3,7 +3,7 @@ package search
 import (
 	"testing"
 
-	"github.com/maxencetholomier/knowledge/pkg/files"
+	"github.com/maxencetholomier/knowledge/internal/files"
 )
 
 func testFiles() []files.FileInfo {

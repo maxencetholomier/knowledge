@@ -3,10 +3,10 @@ package cmd
 import (
 	"strings"
 
-	"github.com/maxencetholomier/knowledge/pkg/files"
-	"github.com/maxencetholomier/knowledge/pkg/output"
-	"github.com/maxencetholomier/knowledge/pkg/search"
-	"github.com/maxencetholomier/knowledge/pkg/ui"
+	"github.com/maxencetholomier/knowledge/internal/files"
+	"github.com/maxencetholomier/knowledge/internal/output"
+	"github.com/maxencetholomier/knowledge/internal/search"
+	"github.com/maxencetholomier/knowledge/internal/ui"
 
 	"github.com/spf13/cobra"
 )

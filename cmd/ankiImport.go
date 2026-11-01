@@ -6,10 +6,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/maxencetholomier/knowledge/pkg/anki"
-	"github.com/maxencetholomier/knowledge/pkg/files"
-	"github.com/maxencetholomier/knowledge/pkg/prompt"
-	"github.com/maxencetholomier/knowledge/pkg/utils"
+	"github.com/maxencetholomier/knowledge/internal/anki"
+	"github.com/maxencetholomier/knowledge/internal/files"
+	"github.com/maxencetholomier/knowledge/internal/prompt"
+	"github.com/maxencetholomier/knowledge/internal/utils"
 
 	"github.com/spf13/cobra"
 )

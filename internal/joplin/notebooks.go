@@ -3,7 +3,7 @@ package joplin
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/maxencetholomier/knowledge/pkg/config"
+	"github.com/maxencetholomier/knowledge/internal/config"
 )
 
 func GetNotebookInfo(notebookName string) (string, string, error) {

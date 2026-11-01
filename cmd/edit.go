@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/maxencetholomier/knowledge/pkg/config"
-	"github.com/maxencetholomier/knowledge/pkg/files"
-	"github.com/maxencetholomier/knowledge/pkg/utils"
+	"github.com/maxencetholomier/knowledge/internal/config"
+	"github.com/maxencetholomier/knowledge/internal/files"
+	"github.com/maxencetholomier/knowledge/internal/utils"
 
 	"github.com/spf13/cobra"
 )

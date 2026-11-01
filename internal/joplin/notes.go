@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/maxencetholomier/knowledge/pkg/utils"
+	"github.com/maxencetholomier/knowledge/internal/utils"
 	"mime/multipart"
 	"os"
 	"regexp"

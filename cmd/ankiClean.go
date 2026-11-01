@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/maxencetholomier/knowledge/pkg/anki"
+	"github.com/maxencetholomier/knowledge/internal/anki"
 
 	"github.com/spf13/cobra"
 )

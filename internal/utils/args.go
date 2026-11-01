@@ -2,7 +2,7 @@ package utils
 
 import (
 	"fmt"
-	"github.com/maxencetholomier/knowledge/pkg/output"
+	"github.com/maxencetholomier/knowledge/internal/output"
 	"os"
 	"strconv"
 	"strings"

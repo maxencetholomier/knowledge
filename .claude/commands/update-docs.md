@@ -23,7 +23,7 @@ Build a list of all gaps between code and docs:
 - **Removed command**: documented but no longer exists in `cmd/` → must remove the section
 - **Missing flag**: flag exists in code but not documented → must add to the command section
 - **Removed flag**: flag documented but no longer exists in code → must remove from docs
-- **Inaccurate description**: `Short`/`Long`/`Example` in `cmd/*.go` does not match actual behavior (cross-reference `pkg/` if needed) → update in the Go file
+- **Inaccurate description**: `Short`/`Long`/`Example` in `cmd/*.go` does not match actual behavior (cross-reference `internal/` if needed) → update in the Go file
 
 ## Step 4 — Edit the files
 

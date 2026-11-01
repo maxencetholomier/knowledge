@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/maxencetholomier/knowledge/pkg/merge"
+	"github.com/maxencetholomier/knowledge/internal/merge"
 
 	"github.com/spf13/cobra"
 )

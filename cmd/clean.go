@@ -8,8 +8,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/maxencetholomier/knowledge/pkg/files"
-	"github.com/maxencetholomier/knowledge/pkg/prompt"
+	"github.com/maxencetholomier/knowledge/internal/files"
+	"github.com/maxencetholomier/knowledge/internal/prompt"
 
 	"github.com/spf13/cobra"
 )

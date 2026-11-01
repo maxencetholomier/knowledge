@@ -3,8 +3,8 @@ package joplin
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/maxencetholomier/knowledge/pkg/files"
-	"github.com/maxencetholomier/knowledge/pkg/utils"
+	"github.com/maxencetholomier/knowledge/internal/files"
+	"github.com/maxencetholomier/knowledge/internal/utils"
 	"io"
 	"mime/multipart"
 	"os"

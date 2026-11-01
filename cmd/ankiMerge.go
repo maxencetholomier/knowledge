@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/maxencetholomier/knowledge/pkg/anki"
-	"github.com/maxencetholomier/knowledge/pkg/files"
-	"github.com/maxencetholomier/knowledge/pkg/merge"
-	"github.com/maxencetholomier/knowledge/pkg/prompt"
+	"github.com/maxencetholomier/knowledge/internal/anki"
+	"github.com/maxencetholomier/knowledge/internal/files"
+	"github.com/maxencetholomier/knowledge/internal/merge"
+	"github.com/maxencetholomier/knowledge/internal/prompt"
 
 	"github.com/spf13/cobra"
 )

@@ -8,7 +8,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/maxencetholomier/knowledge/pkg/files"
+	"github.com/maxencetholomier/knowledge/internal/files"
 
 	"github.com/spf13/cobra"
 )

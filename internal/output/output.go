@@ -3,7 +3,7 @@ package output
 import (
 	"bufio"
 	"fmt"
-	"github.com/maxencetholomier/knowledge/pkg/config"
+	"github.com/maxencetholomier/knowledge/internal/config"
 	"math"
 	"os"
 	"strings"

@@ -2,7 +2,7 @@ package joplin
 
 import (
 	"fmt"
-	"github.com/maxencetholomier/knowledge/pkg/files"
+	"github.com/maxencetholomier/knowledge/internal/files"
 	"strings"
 )
 

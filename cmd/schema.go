@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"github.com/maxencetholomier/knowledge/pkg/config"
-	"github.com/maxencetholomier/knowledge/pkg/files"
+	"github.com/maxencetholomier/knowledge/internal/config"
+	"github.com/maxencetholomier/knowledge/internal/files"
 
 	"github.com/spf13/cobra"
 )
