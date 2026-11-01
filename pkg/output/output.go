@@ -44,18 +44,9 @@ func PrintToCache(text string) error {
 	}
 	writer := bufio.NewWriter(file)
 
-	if text == "" {
-		formattedLine := fmt.Sprintf("")
-		_, err = writer.WriteString(formattedLine)
-		if err != nil {
-			return err
-		}
-	} else {
-		lines := strings.Split(text, "\n")
-		for i, line := range lines {
-			formattedLine := fmt.Sprintf("%d %s\n", i+1, line)
-			_, err := writer.WriteString(formattedLine)
-			if err != nil {
+	if text != "" {
+		for i, line := range strings.Split(text, "\n") {
+			if _, err := fmt.Fprintf(writer, "%d %s\n", i+1, line); err != nil {
 				return err
 			}
 		}

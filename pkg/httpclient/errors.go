@@ -22,7 +22,7 @@ func WrapConnectionError(err error, url string, detector PlatformDetector) error
 		if detector != nil {
 			platformName = detector.DetectPlatform(url)
 		}
-		return fmt.Errorf("impossible de se connecter à %s. Veuillez vous assurer que le service est ouvert et accessible", platformName)
+		return fmt.Errorf("cannot connect to %s, make sure the service is running and reachable", platformName)
 	}
 	return err
 }

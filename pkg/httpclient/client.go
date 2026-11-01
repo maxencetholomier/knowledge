@@ -42,7 +42,9 @@ func Delete(url string, detector PlatformDetector) error {
 	return nil
 }
 
-func Send(method string, url string, body io.Reader, contentType string, context string, detector PlatformDetector) ([]byte, error) {
+func Send(
+	method, url string, body io.Reader, contentType, context string, detector PlatformDetector,
+) ([]byte, error) {
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
 		return nil, FormatHTTPError(err, context, "failed to create request")

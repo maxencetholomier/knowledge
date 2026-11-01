@@ -13,7 +13,8 @@ import (
 var exportCmd = &cobra.Command{
 	Use:   "export",
 	Short: "Export notes to classical markdown format",
-	Long:  `Export all notes and associated resources to classical markdown format with readable filenames based on note headers in the export directory.`,
+	Long: `Export all notes and associated resources to classical markdown format
+with readable filenames based on note headers in the export directory.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := files.EnsureDir(DirExport); err != nil {
 			return err
@@ -47,7 +48,7 @@ func exportMarkdownFiles() error {
 		header := strings.Split(file.Content, "\n")[0]
 		header = strings.TrimPrefix(header, "#")
 		header = strings.Trim(header, " ")
-		header = strings.Replace(header, "/", ":", -1)
+		header = strings.ReplaceAll(header, "/", ":")
 
 		if header == "" {
 			header = strings.TrimSuffix(file.Name, ".md")

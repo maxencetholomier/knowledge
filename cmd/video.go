@@ -20,7 +20,10 @@ contain a markdown link in the format [Video](timestamp.mp4).
 
 The screenrecord command will be called with the target path where the video should be saved.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return files.CreateMediaNote(DirZet, ScreenrecordTool, ScreenrecordParams, Terminal, TerminalParams, ".mp4", "video", videoUseNewTerminal)
+		return files.CreateMediaNote(
+			DirZet, ScreenrecordTool, ScreenrecordParams, Terminal, TerminalParams,
+			".mp4", "video", videoUseNewTerminal,
+		)
 	},
 }
 

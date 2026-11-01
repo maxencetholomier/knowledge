@@ -13,7 +13,10 @@ var imageCmd = &cobra.Command{
 	Aliases: []string{"i"},
 	Short:   "Create a new note with screenshot using Flameshot",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return files.CreateMediaNote(DirZet, ScreenshotTool, ScreenshotParams, Terminal, TerminalParams, ".png", "image", imageUseNewTerminal)
+		return files.CreateMediaNote(
+			DirZet, ScreenshotTool, ScreenshotParams, Terminal, TerminalParams,
+			".png", "image", imageUseNewTerminal,
+		)
 	},
 }
 

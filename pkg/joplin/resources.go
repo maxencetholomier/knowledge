@@ -3,9 +3,9 @@ package joplin
 import (
 	"bytes"
 	"encoding/json"
-	"io"
 	"github.com/maxencetholomier/knowledge/pkg/files"
 	"github.com/maxencetholomier/knowledge/pkg/utils"
+	"io"
 	"mime/multipart"
 	"os"
 	"regexp"

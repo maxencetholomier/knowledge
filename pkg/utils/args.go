@@ -10,11 +10,11 @@ import (
 
 func ResolveFileName(args []string, dirCache string) (string, error) {
 	if len(args) > 1 {
-		return "", fmt.Errorf("too many arguments. Maximum is one.")
+		return "", fmt.Errorf("too many arguments, maximum is one")
 	}
 
 	readFromCache := false
-	var lineNum int = 1
+	lineNum := 1
 	var fileName string
 
 	if len(args) == 1 {

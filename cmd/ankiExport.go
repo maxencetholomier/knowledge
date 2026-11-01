@@ -103,7 +103,7 @@ const trashDeck = "trash"
 
 func ensureAnkiClosed() error {
 	if anki.IsAnkiRunning() {
-		return fmt.Errorf("Anki is running, close it and re-run")
+		return fmt.Errorf("anki is running, close it and re-run")
 	}
 	return nil
 }
@@ -340,8 +340,10 @@ func readNoteList(listFile string) ([]string, error) {
 func init() {
 	ankiCmd.AddCommand(ankiExportCmd)
 	ankiExportCmd.Flags().BoolVar(&ankiNoImport, "no-import", false, "skip the import into Anki, only export .apkg files")
-	ankiExportCmd.Flags().StringSliceVar(&ankiDecks, "deck", nil, "export only the given deck(s), matching anki_export_<name> (repeatable)")
-	ankiExportCmd.Flags().BoolVarP(&ankiAssumeYes, "yes", "y", false, "remove orphan Anki notes without asking for confirmation")
+	ankiExportCmd.Flags().StringSliceVar(&ankiDecks, "deck", nil,
+		"export only the given deck(s), matching anki_export_<name> (repeatable)")
+	ankiExportCmd.Flags().BoolVarP(&ankiAssumeYes, "yes", "y", false,
+		"remove orphan Anki notes without asking for confirmation")
 	ankiExportCmd.RegisterFlagCompletionFunc("deck", completeDeckNames)
 }
 

@@ -231,7 +231,10 @@ func markdownToHTML(markdown string) (string, []MediaFile) {
 		}),
 	}
 
-	md := blackfriday.New(blackfriday.WithRenderer(renderer), blackfriday.WithExtensions(blackfriday.CommonExtensions|blackfriday.HardLineBreak))
+	md := blackfriday.New(
+		blackfriday.WithRenderer(renderer),
+		blackfriday.WithExtensions(blackfriday.CommonExtensions|blackfriday.HardLineBreak),
+	)
 
 	var buf bytes.Buffer
 	ast := md.Parse([]byte(markdown))

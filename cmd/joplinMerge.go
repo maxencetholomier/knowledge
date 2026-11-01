@@ -30,7 +30,8 @@ type mergeAction struct {
 var joplinMergeCmd = &cobra.Command{
 	Use:   "merge",
 	Short: "Merge notes with Joplin bidirectionally",
-	Long: `Synchronize notes between the knowledge base and Joplin by merging changes bidirectionally based on modification timestamps.
+	Long: `Synchronize notes between the knowledge base and Joplin by merging changes
+bidirectionally based on modification timestamps.
 
 IMPORTANT: The merge process uses modification timestamps to determine which version is newer.
 The newest version will be preserved and the older version will be overwritten.
@@ -148,7 +149,7 @@ func getMergeActions(joplinNotes []joplin.Note, forceAction string) ([]mergeActi
 		}
 
 		fileContent, readErr := os.ReadFile(DirZet + "/" + fileName)
-		joplinAsLocal := strings.TrimSpace("# " + note.Title + "\n\n" + joplin.StripLeadingHeading(joplin.ReplaceIdsToLink(note.Body)))
+		joplinAsLocal := joplinNoteAsLocal(note.Title, note.Body)
 
 		action := mergeAction{
 			fileName:     fileName,
@@ -194,7 +195,7 @@ func getMergeActions(joplinNotes []joplin.Note, forceAction string) ([]mergeActi
 }
 
 func printMergeAction(action mergeAction) {
-	joplinAsLocal := strings.TrimSpace("# " + action.joplinTitle + "\n\n" + joplin.StripLeadingHeading(joplin.ReplaceIdsToLink(action.joplinBody)))
+	joplinAsLocal := joplinNoteAsLocal(action.joplinTitle, action.joplinBody)
 
 	var arrow, direction string
 	var updateTime time.Time
@@ -288,9 +289,16 @@ func showDiff(localContent, joplinAsLocal string, maxLines int) {
 }
 
 func init() {
-	joplinMergeCmd.Flags().StringVarP(&joplinMergeNotebook, "notebook", "n", "", "specify the notebook to move local notes to when pushing to Joplin")
+	joplinMergeCmd.Flags().StringVarP(&joplinMergeNotebook, "notebook", "n", "",
+		"specify the notebook to move local notes to when pushing to Joplin")
 	joplinMergeCmd.Flags().BoolVar(&joplinMergeShowDiff, "diff", false, "show diff of changes for each file")
-	joplinMergeCmd.Flags().BoolVar(&joplinMergeForceLocal, "force-local", false, "push all notes from local to Joplin, ignoring timestamps")
-	joplinMergeCmd.Flags().BoolVar(&joplinMergeForceJoplin, "force-joplin", false, "pull all notes from Joplin to local, ignoring timestamps")
+	joplinMergeCmd.Flags().BoolVar(&joplinMergeForceLocal, "force-local", false,
+		"push all notes from local to Joplin, ignoring timestamps")
+	joplinMergeCmd.Flags().BoolVar(&joplinMergeForceJoplin, "force-joplin", false,
+		"pull all notes from Joplin to local, ignoring timestamps")
 	joplinCmd.AddCommand(joplinMergeCmd)
+}
+
+func joplinNoteAsLocal(title, body string) string {
+	return strings.TrimSpace("# " + title + "\n\n" + joplin.StripLeadingHeading(joplin.ReplaceIdsToLink(body)))
 }

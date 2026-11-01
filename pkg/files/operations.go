@@ -35,7 +35,9 @@ func Create(filePath, fileContent string) (*os.File, error) {
 }
 
 func GetLastUpdates(DirZet string) (map[string]time.Time, error) {
-	out, err := exec.Command("git", "-C", DirZet, "log", "--format=COMMIT %ad", "--date=unix", "--name-only", "--relative").Output()
+	out, err := exec.Command(
+		"git", "-C", DirZet, "log", "--format=COMMIT %ad", "--date=unix", "--name-only", "--relative",
+	).Output()
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +93,10 @@ func GetFileType(filename string) string {
 
 }
 
-func CreateMediaNote(dirZet, tool string, toolParams []string, terminal string, terminalParams []string, fileExtension, templateType string, useNewTerminal bool) error {
+func CreateMediaNote(
+	dirZet, tool string, toolParams []string, terminal string, terminalParams []string,
+	fileExtension, templateType string, useNewTerminal bool,
+) error {
 	now := time.Now()
 	timestamp := now.Format("20060102150405")
 

@@ -13,7 +13,10 @@ var schemaCmd = &cobra.Command{
 	Aliases: []string{"s"},
 	Short:   "Create a new note with diagram using Inkscape",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return files.CreateMediaNote(DirZet, SchemaTool, SchemaToolParams, Terminal, TerminalParams, ".svg", "schema", schemaUseNewTerminal)
+		return files.CreateMediaNote(
+			DirZet, SchemaTool, SchemaToolParams, Terminal, TerminalParams,
+			".svg", "schema", schemaUseNewTerminal,
+		)
 	},
 }
 

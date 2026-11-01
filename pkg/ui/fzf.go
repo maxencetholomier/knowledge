@@ -85,7 +85,9 @@ func (fs *FileSelector) SelectFile(fileList []files.FileInfo, baseDir string) (s
 	} else {
 		args = append(args, "--delimiter", "\t")
 		args = append(args, "--with-nth", "1")
-		args = append(args, "--preview", fmt.Sprintf("bat --plain --theme=${BAT_THEME} --color=always %s/{2}.md 2>/dev/null || bat --plain --theme=${BAT_THEME} --color=always %s/{1}.md", baseDir, baseDir))
+		bat := "bat --plain --theme=${BAT_THEME} --color=always"
+		preview := fmt.Sprintf("%s %s/{2}.md 2>/dev/null || %s %s/{1}.md", bat, baseDir, bat, baseDir)
+		args = append(args, "--preview", preview)
 	}
 
 	cmd := exec.Command(fs.Config.Command, args...)
@@ -101,7 +103,7 @@ func (fs *FileSelector) SelectFile(fileList []files.FileInfo, baseDir string) (s
 			title = strings.TrimPrefix(title, "#")
 			title = strings.TrimSpace(title)
 		}
-		
+
 		if strings.Contains(title, "|") {
 			parts := strings.Split(title, "|")
 			title = strings.TrimSpace(parts[0])
@@ -173,7 +175,8 @@ func (ss *SearchSelector) SelectFromSearchResults(rgOutput []byte) (string, erro
 	args = append(args, "--ansi")
 	args = append(args, "--delimiter", ":")
 	if ss.Config.BaseDir != "" {
-		args = append(args, "--preview", fmt.Sprintf("bat --plain --color=always %s/{1} --highlight-line {2}", ss.Config.BaseDir))
+		preview := fmt.Sprintf("bat --plain --color=always %s/{1} --highlight-line {2}", ss.Config.BaseDir)
+		args = append(args, "--preview", preview)
 	} else {
 		args = append(args, "--preview", "bat --plain --color=always {1} --highlight-line {2}")
 	}

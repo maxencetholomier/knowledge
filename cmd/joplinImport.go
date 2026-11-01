@@ -213,6 +213,7 @@ func deleteLocalNotes(notes []localNote) {
 }
 
 func init() {
-	joplinImportCmd.Flags().StringVarP(&joplinImportNotebook, "notebook", "n", "", "specify the notebook to import notes from")
+	joplinImportCmd.Flags().StringVarP(&joplinImportNotebook, "notebook", "n", "",
+		"specify the notebook to import notes from")
 	joplinCmd.AddCommand(joplinImportCmd)
 }

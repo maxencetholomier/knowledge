@@ -22,7 +22,8 @@ var joplinDiffCmd = &cobra.Command{
 	Use:     "diff",
 	Aliases: []string{"d"},
 	Short:   "Compare local notes with Joplin notes",
-	Long:    `Show differences between local knowledge base and Joplin notes, including missing notes and content differences.`,
+	Long: `Show differences between local knowledge base and Joplin notes,
+including missing notes and content differences.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		localNotes, err := getLocalList()
 		if err != nil {

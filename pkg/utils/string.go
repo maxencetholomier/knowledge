@@ -6,7 +6,6 @@ import (
 	"time"
 )
 
-
 func ContainingTimestamp(line string) (bool, error) {
 	pattern := `# [0-9]{14}\s*:`
 	re, err := regexp.Compile(pattern)
@@ -90,7 +89,6 @@ func CreateTimestamp() string {
 	time.Sleep(1 * time.Second)
 	return now.Format("20060102150405")
 }
-
 
 func containingHeader(line string) (bool, error) {
 	pattern := `^#`

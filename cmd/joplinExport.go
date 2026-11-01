@@ -193,7 +193,12 @@ func exportNote(note localNoteToExport, notebookId string) (noteErr, resourceErr
 		resourceErr = err
 	}
 
-	query := joplin.WriteQuery{Method: joplin.POST, FileName: note.timestamp + ".md", DirZet: DirZet, NotebookId: notebookId}
+	query := joplin.WriteQuery{
+		Method:     joplin.POST,
+		FileName:   note.timestamp + ".md",
+		DirZet:     DirZet,
+		NotebookId: notebookId,
+	}
 	if err = joplin.Send(query); err != nil {
 		noteErr = err
 	}
@@ -212,6 +217,7 @@ func filterAlreadyExportedIds(ids []string) []string {
 }
 
 func init() {
-	joplinExportCmd.Flags().StringVarP(&joplinExportNotebook, "notebook", "n", "", "specify the notebook to export notes to")
+	joplinExportCmd.Flags().StringVarP(&joplinExportNotebook, "notebook", "n", "",
+		"specify the notebook to export notes to")
 	joplinCmd.AddCommand(joplinExportCmd)
 }

@@ -182,7 +182,6 @@ func loadConfigFile() (*Config, error) {
 	return &config, nil
 }
 
-// TODO: ADD  joplinNotebook in environment configuration
 func setConfigVars(config *Config) {
 	fzf = config.FZF
 	fzfEnv = config.FZFEnv
@@ -222,7 +221,7 @@ func initJoplin(config *Config) error {
 			}
 		}
 		if !found {
-			return fmt.Errorf("Joplin config file not found (tried: %s) — Joplin commands will not be available", strings.Join(candidates, ", "))
+			return fmt.Errorf("joplin config file not found (tried: %s)", strings.Join(candidates, ", "))
 		}
 	}
 
