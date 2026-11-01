@@ -9,6 +9,7 @@ import (
 
 	"github.com/maxencetholomier/knowledge/pkg/anki"
 	"github.com/maxencetholomier/knowledge/pkg/files"
+	"github.com/maxencetholomier/knowledge/pkg/merge"
 	"github.com/maxencetholomier/knowledge/pkg/prompt"
 
 	"github.com/spf13/cobra"
@@ -18,11 +19,8 @@ var ankiMergeShowDiff bool
 var ankiMergeForceLocal bool
 var ankiMergeForceAnki bool
 
-const pullFromAnki = "pull_from_anki"
-const pushToAnki = "push_to_anki"
-
 type ankiMergeAction struct {
-	action     string
+	action     merge.Direction
 	deck       string
 	fileName   string
 	title      string
@@ -49,11 +47,11 @@ Anki notes without a local file are left to 'kl anki import'. Anki must be close
 			return fmt.Errorf("--force-local and --force-anki are mutually exclusive")
 		}
 
-		forceAction := ""
+		forceAction := merge.None
 		if ankiMergeForceLocal {
-			forceAction = pushToAnki
+			forceAction = merge.Push
 		} else if ankiMergeForceAnki {
-			forceAction = pullFromAnki
+			forceAction = merge.Pull
 		}
 
 		if err := ensureAnkiClosed(); err != nil {
@@ -102,7 +100,9 @@ Anki notes without a local file are left to 'kl anki import'. Anki must be close
 	},
 }
 
-func getAnkiMergeActions(notes []anki.CollectionNote, forceAction string) ([]ankiMergeAction, int, error) {
+func getAnkiMergeActions(
+	notes []anki.CollectionNote, forceAction merge.Direction,
+) ([]ankiMergeAction, int, error) {
 	fileTimestamps, err := files.GetLastUpdates(DirZet)
 	if err != nil {
 		return nil, 0, err
@@ -135,20 +135,14 @@ func getAnkiMergeActions(notes []anki.CollectionNote, forceAction string) ([]ank
 			continue
 		}
 
-		fileUpdate, inGit := fileTimestamps[fileName]
-		action.fileUpdate = fileUpdate
+		action.fileUpdate = fileTimestamps[fileName]
 
-		switch {
-		case action.remote == "":
-			action.action = pushToAnki
-		case forceAction != "":
-			action.action = forceAction
-		case !inGit || fileUpdate.Before(action.ankiUpdate):
-			action.action = pullFromAnki
-		case action.ankiUpdate.Before(fileUpdate):
-			action.action = pushToAnki
-		default:
-			action.action = pullFromAnki
+		if action.remote == "" {
+			action.action = merge.Push
+		} else {
+			action.action = merge.Decide(
+				action.local, action.remote, action.fileUpdate, action.ankiUpdate, forceAction,
+			)
 		}
 
 		actions = append(actions, action)
@@ -162,13 +156,13 @@ func confirmAnkiMerge(actions []ankiMergeAction) bool {
 
 	pullCount, pushCount := 0, 0
 	for _, action := range actions {
-		if action.action == pullFromAnki {
+		if action.action == merge.Pull {
 			pullCount++
 			fmt.Printf("  ← %s - %s (pull from Anki, updated %s)\n",
 				action.fileName[:14], action.title, action.ankiUpdate.Format("2006-01-02 15:04"))
 			if ankiMergeShowDiff {
 				fmt.Printf("    Changes:\n")
-				showDiff(action.local, action.remote, 5)
+				merge.PrintDiff(os.Stdout, action.local, action.remote, 5)
 			}
 		} else {
 			pushCount++
@@ -176,7 +170,7 @@ func confirmAnkiMerge(actions []ankiMergeAction) bool {
 				action.fileName[:14], action.title, action.fileUpdate.Format("2006-01-02 15:04"))
 			if ankiMergeShowDiff {
 				fmt.Printf("    Changes:\n")
-				showDiff(action.remote, action.local, 5)
+				merge.PrintDiff(os.Stdout, action.remote, action.local, 5)
 			}
 		}
 	}
@@ -195,7 +189,7 @@ func applyAnkiMergeActions(actions []ankiMergeAction, deckFiles []deckFile) erro
 	decksToPush := make(map[string]bool)
 	pulled := 0
 	for _, action := range actions {
-		if action.action == pushToAnki {
+		if action.action == merge.Push {
 			decksToPush[action.deck] = true
 			continue
 		}

@@ -326,7 +326,6 @@ kl joplin diff
 
 The comparison is based solely on timestamps, not content or titles.
 
-- `--debug`: Show detailed content comparison for debugging
 
 #### `joplin import`
 

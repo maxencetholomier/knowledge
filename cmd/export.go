@@ -1,10 +1,11 @@
 package cmd
 
 import (
-	"github.com/maxencetholomier/knowledge/pkg/config"
 	"io"
 	"os"
 	"strings"
+
+	"github.com/maxencetholomier/knowledge/pkg/config"
 
 	"github.com/maxencetholomier/knowledge/pkg/files"
 

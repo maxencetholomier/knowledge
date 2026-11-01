@@ -3,11 +3,12 @@ package cmd
 import (
 	"bufio"
 	"fmt"
-	"github.com/maxencetholomier/knowledge/pkg/files"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/maxencetholomier/knowledge/pkg/files"
 
 	"github.com/spf13/cobra"
 )

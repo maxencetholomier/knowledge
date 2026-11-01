@@ -3,14 +3,15 @@ package cmd
 import (
 	"bufio"
 	"fmt"
-	"github.com/maxencetholomier/knowledge/pkg/anki"
-	"github.com/maxencetholomier/knowledge/pkg/config"
-	"github.com/maxencetholomier/knowledge/pkg/files"
-	"github.com/maxencetholomier/knowledge/pkg/prompt"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
+
+	"github.com/maxencetholomier/knowledge/pkg/anki"
+	"github.com/maxencetholomier/knowledge/pkg/config"
+	"github.com/maxencetholomier/knowledge/pkg/files"
+	"github.com/maxencetholomier/knowledge/pkg/prompt"
 
 	"github.com/spf13/cobra"
 )

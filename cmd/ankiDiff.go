@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/maxencetholomier/knowledge/pkg/merge"
+
 	"github.com/spf13/cobra"
 )
 
@@ -33,12 +35,7 @@ Use --local to show only notes not in Anki, --anki to show only notes not local.
 		showAnki := !ankiDiffLocalOnly
 
 		if showLocal {
-			var onlyLocal []string
-			for timestamp := range localNotes {
-				if !ankiNotes[timestamp] {
-					onlyLocal = append(onlyLocal, timestamp)
-				}
-			}
+			onlyLocal := merge.MissingKeys(localNotes, ankiNotes)
 			if len(onlyLocal) == 0 {
 				fmt.Println("All local notes are in Anki.")
 			} else {
@@ -54,12 +51,7 @@ Use --local to show only notes not in Anki, --anki to show only notes not local.
 		}
 
 		if showAnki {
-			var onlyAnki []string
-			for ts := range ankiNotes {
-				if _, exists := localNotes[ts]; !exists {
-					onlyAnki = append(onlyAnki, ts)
-				}
-			}
+			onlyAnki := merge.MissingKeys(ankiNotes, localNotes)
 			if len(onlyAnki) == 0 {
 				fmt.Println("All Anki notes exist locally.")
 			} else {

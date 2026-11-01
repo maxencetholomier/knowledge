@@ -2,8 +2,9 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/maxencetholomier/knowledge/pkg/files"
 	"strings"
+
+	"github.com/maxencetholomier/knowledge/pkg/files"
 
 	"github.com/spf13/cobra"
 )

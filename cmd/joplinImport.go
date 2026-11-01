@@ -2,12 +2,13 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+	"strings"
+
 	"github.com/maxencetholomier/knowledge/pkg/files"
 	"github.com/maxencetholomier/knowledge/pkg/joplin"
 	"github.com/maxencetholomier/knowledge/pkg/prompt"
 	"github.com/maxencetholomier/knowledge/pkg/utils"
-	"os"
-	"strings"
 
 	"github.com/spf13/cobra"
 )

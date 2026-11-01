@@ -2,10 +2,11 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/maxencetholomier/knowledge/pkg/config"
 	"github.com/maxencetholomier/knowledge/pkg/files"
 	"github.com/maxencetholomier/knowledge/pkg/utils"
-	"os"
 
 	"github.com/spf13/cobra"
 )

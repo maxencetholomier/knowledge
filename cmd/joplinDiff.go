@@ -2,15 +2,14 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/maxencetholomier/knowledge/pkg/files"
 	"github.com/maxencetholomier/knowledge/pkg/joplin"
-	"github.com/maxencetholomier/knowledge/pkg/utils"
-	"strings"
+	"github.com/maxencetholomier/knowledge/pkg/merge"
 
 	"github.com/spf13/cobra"
 )
-
-var debugDiff bool
 
 type diffResult struct {
 	onlyLocal  []string
@@ -57,18 +56,9 @@ func printDifference(diff diffResult) {
 }
 
 func collectDiff(localNotes, joplinNotes map[string]string) (diffResult, error) {
-	localTimestamps := make([]string, 0, len(localNotes))
-	joplinTimestamps := make([]string, 0, len(joplinNotes))
-	for timestamp := range localNotes {
-		localTimestamps = append(localTimestamps, timestamp)
-	}
-	for timestamp := range joplinNotes {
-		joplinTimestamps = append(joplinTimestamps, timestamp)
-	}
-
-	onlyLocal := utils.ANotInB(localTimestamps, joplinTimestamps)
-	onlyJoplin := utils.ANotInB(joplinTimestamps, localTimestamps)
-	common := getCommonTimestamps(localTimestamps, joplinTimestamps)
+	onlyLocal := merge.MissingKeys(localNotes, joplinNotes)
+	onlyJoplin := merge.MissingKeys(joplinNotes, localNotes)
+	common := merge.CommonKeys(localNotes, joplinNotes)
 
 	if len(onlyLocal) > 0 {
 		fmt.Printf("Only in local (%d notes):\n", len(onlyLocal))
@@ -95,16 +85,6 @@ func collectDiff(localNotes, joplinNotes map[string]string) (diffResult, error) 
 	}
 
 	return diffResult{onlyLocal: onlyLocal, onlyJoplin: onlyJoplin, common: common}, nil
-}
-
-func getCommonTimestamps(local, joplin []string) []string {
-	var common []string
-	for _, localTs := range local {
-		if utils.ItemInSlice(joplin, localTs) {
-			common = append(common, localTs)
-		}
-	}
-	return common
 }
 
 func getLocalList() (map[string]string, error) {
@@ -148,6 +128,5 @@ func getJoplinList() (map[string]string, error) {
 }
 
 func init() {
-	joplinDiffCmd.Flags().BoolVar(&debugDiff, "debug", false, "show detailed content comparison for debugging")
 	joplinCmd.AddCommand(joplinDiffCmd)
 }

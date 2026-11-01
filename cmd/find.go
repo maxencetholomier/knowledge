@@ -1,11 +1,12 @@
 package cmd
 
 import (
+	"strings"
+
 	"github.com/maxencetholomier/knowledge/pkg/files"
 	"github.com/maxencetholomier/knowledge/pkg/output"
 	"github.com/maxencetholomier/knowledge/pkg/search"
 	"github.com/maxencetholomier/knowledge/pkg/ui"
-	"strings"
 
 	"github.com/spf13/cobra"
 )
