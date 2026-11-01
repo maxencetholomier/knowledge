@@ -72,7 +72,7 @@ func convertResourceLinks(input, timestamp string) (string, error) {
 }
 
 func replacingJoplinLink(input string, timestamp string) (string, error) {
-	pattern := `\[.*?\]\(:/[a-zA-Z0-9]{1,32}\)`
+	pattern := `!?\[.*?\]\(:/[a-zA-Z0-9]{1,32}\)`
 	re, err := regexp.Compile(pattern)
 	if err != nil {
 		return "", err
