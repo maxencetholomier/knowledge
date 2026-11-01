@@ -1,0 +1,242 @@
+package cmd
+
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
+
+	"github.com/maxencetholomier/knowledge/pkg/anki"
+	"github.com/maxencetholomier/knowledge/pkg/files"
+	"github.com/maxencetholomier/knowledge/pkg/prompt"
+
+	"github.com/spf13/cobra"
+)
+
+var ankiMergeShowDiff bool
+var ankiMergeForceLocal bool
+var ankiMergeForceAnki bool
+
+const pullFromAnki = "pull_from_anki"
+const pushToAnki = "push_to_anki"
+
+type ankiMergeAction struct {
+	action     string
+	deck       string
+	fileName   string
+	title      string
+	local      string
+	remote     string
+	fileUpdate time.Time
+	ankiUpdate time.Time
+}
+
+var ankiMergeCmd = &cobra.Command{
+	Use:   "merge",
+	Short: "Merge notes with Anki bidirectionally",
+	Long: `Synchronize notes between the knowledge base and Anki based on modification timestamps.
+
+The hidden Markdown field of each Anki note is compared with the local file. When they differ,
+the newest version wins: the Anki note modification time against the last git commit of the file.
+Pulled notes overwrite the local file; pushed notes re-export their whole deck. There is no
+conflict resolution, the older version is lost.
+
+Anki notes whose Markdown field is empty (exported before the field existed) are always pushed.
+Anki notes without a local file are left to 'kl anki import'. Anki must be closed.`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if ankiMergeForceLocal && ankiMergeForceAnki {
+			return fmt.Errorf("--force-local and --force-anki are mutually exclusive")
+		}
+
+		forceAction := ""
+		if ankiMergeForceLocal {
+			forceAction = pushToAnki
+		} else if ankiMergeForceAnki {
+			forceAction = pullFromAnki
+		}
+
+		if err := ensureAnkiClosed(); err != nil {
+			return err
+		}
+
+		deckFiles, err := getDeckFiles(DirZet)
+		if err != nil {
+			return err
+		}
+
+		deckFiles, err = filterDeckFiles(deckFiles, ankiDecks)
+		if err != nil {
+			return err
+		}
+
+		collectionPath, err := anki.FindCollection()
+		if err != nil {
+			return err
+		}
+
+		notes, err := anki.ReadNotes(collectionPath, deckNames(deckFiles))
+		if err != nil {
+			return err
+		}
+
+		actions, pending, err := getAnkiMergeActions(notes, forceAction)
+		if err != nil {
+			return err
+		}
+
+		if pending > 0 {
+			fmt.Printf("%d Anki note(s) have no local note, run 'kl anki import' to create them.\n", pending)
+		}
+
+		if len(actions) == 0 {
+			fmt.Println("No notes need synchronization - all notes are up to date.")
+			return nil
+		}
+
+		if !confirmAnkiMerge(actions) {
+			return nil
+		}
+
+		return applyAnkiMergeActions(actions, deckFiles)
+	},
+}
+
+func getAnkiMergeActions(notes []anki.CollectionNote, forceAction string) ([]ankiMergeAction, int, error) {
+	fileTimestamps, err := files.GetLastUpdates(DirZet)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	var actions []ankiMergeAction
+	pending := 0
+	for _, note := range notes {
+		if note.Timestamp == "" {
+			pending++
+			continue
+		}
+
+		fileName := note.Timestamp + ".md"
+		content, err := os.ReadFile(filepath.Join(DirZet, fileName))
+		if err != nil {
+			pending++
+			continue
+		}
+
+		action := ankiMergeAction{
+			deck:       note.Deck,
+			fileName:   fileName,
+			title:      note.Front,
+			local:      strings.TrimSpace(string(content)),
+			remote:     anki.DecodeMarkdownField(note.Markdown),
+			ankiUpdate: time.Unix(note.Modified, 0),
+		}
+		if action.local == action.remote {
+			continue
+		}
+
+		fileUpdate, inGit := fileTimestamps[fileName]
+		action.fileUpdate = fileUpdate
+
+		switch {
+		case action.remote == "":
+			action.action = pushToAnki
+		case forceAction != "":
+			action.action = forceAction
+		case !inGit || fileUpdate.Before(action.ankiUpdate):
+			action.action = pullFromAnki
+		case action.ankiUpdate.Before(fileUpdate):
+			action.action = pushToAnki
+		default:
+			action.action = pullFromAnki
+		}
+
+		actions = append(actions, action)
+	}
+
+	return actions, pending, nil
+}
+
+func confirmAnkiMerge(actions []ankiMergeAction) bool {
+	fmt.Printf("Will synchronize %d note(s):\n", len(actions))
+
+	pullCount, pushCount := 0, 0
+	for _, action := range actions {
+		if action.action == pullFromAnki {
+			pullCount++
+			fmt.Printf("  ← %s - %s (pull from Anki, updated %s)\n",
+				action.fileName[:14], action.title, action.ankiUpdate.Format("2006-01-02 15:04"))
+			if ankiMergeShowDiff {
+				fmt.Printf("    Changes:\n")
+				showDiff(action.local, action.remote, 5)
+			}
+		} else {
+			pushCount++
+			fmt.Printf("  → %s - %s (push to Anki, updated %s)\n",
+				action.fileName[:14], action.title, action.fileUpdate.Format("2006-01-02 15:04"))
+			if ankiMergeShowDiff {
+				fmt.Printf("    Changes:\n")
+				showDiff(action.remote, action.local, 5)
+			}
+		}
+	}
+
+	fmt.Printf("\nSummary: %d note(s) to pull from Anki, %d note(s) to push to Anki\n", pullCount, pushCount)
+
+	confirmed, err := prompt.Confirm("Proceed with synchronization?")
+	if err != nil || !confirmed {
+		fmt.Println("Synchronization cancelled.")
+		return false
+	}
+	return true
+}
+
+func applyAnkiMergeActions(actions []ankiMergeAction, deckFiles []deckFile) error {
+	decksToPush := make(map[string]bool)
+	pulled := 0
+	for _, action := range actions {
+		if action.action == pushToAnki {
+			decksToPush[action.deck] = true
+			continue
+		}
+
+		file, err := files.Create(filepath.Join(DirZet, action.fileName), action.remote+"\n")
+		if err != nil {
+			fmt.Printf("Error pulling %s: %v\n", action.fileName, err)
+			continue
+		}
+		file.Close()
+		pulled++
+	}
+
+	if pulled > 0 {
+		fmt.Printf("\nPulled %d note(s) from Anki.\n", pulled)
+	}
+
+	if len(decksToPush) == 0 {
+		return nil
+	}
+
+	var toExport []deckFile
+	for _, deck := range deckFiles {
+		if decksToPush[deck.Name] {
+			toExport = append(toExport, deck)
+		}
+	}
+
+	fmt.Printf("\nPushing %d deck(s) to Anki: %s\n", len(toExport), strings.Join(deckNames(toExport), ", "))
+	return exportDecks(toExport, true)
+}
+
+func init() {
+	ankiCmd.AddCommand(ankiMergeCmd)
+	ankiMergeCmd.Flags().StringSliceVar(&ankiDecks, "deck", nil, "merge only the given deck(s) (repeatable)")
+	ankiMergeCmd.Flags().BoolVar(&ankiMergeShowDiff, "diff", false, "show diff of changes for each file")
+	ankiMergeCmd.Flags().BoolVar(&ankiMergeForceLocal, "force-local", false,
+		"push all notes from local to Anki, ignoring timestamps")
+	ankiMergeCmd.Flags().BoolVar(&ankiMergeForceAnki, "force-anki", false,
+		"pull all notes from Anki to local, ignoring timestamps")
+	ankiMergeCmd.Flags().BoolVarP(&ankiAssumeYes, "yes", "y", false,
+		"remove orphan Anki notes after a push without asking for confirmation")
+	ankiMergeCmd.RegisterFlagCompletionFunc("deck", completeDeckNames)
+}
