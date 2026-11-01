@@ -16,7 +16,7 @@ import (
 	"github.com/russross/blackfriday/v2"
 )
 
-func generateDeterministicID(noteFilename string) int64 {
+func GenerateDeterministicID(noteFilename string) int64 {
 	hash := sha256.Sum256([]byte(noteFilename))
 	id := int64(binary.BigEndian.Uint64(hash[:8]))
 
@@ -65,9 +65,9 @@ func ConvertNote(notePath string, linkMap map[string]string) (*genanki.Note, []M
 	}
 
 	note := &genanki.Note{
-		ID:        generateDeterministicID(noteFilename),
+		ID:        GenerateDeterministicID(noteFilename),
 		ModelID:   BasicModelID,
-		Fields:    []string{front, backHTML},
+		Fields:    []string{front, backHTML, EncodeMarkdownField(text)},
 		Tags:      []string{noteFilename},
 		Modified:  time.Now(),
 		SortField: front,

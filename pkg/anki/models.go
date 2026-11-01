@@ -12,6 +12,7 @@ func CreateBasicModel() *genanki.Model {
 	model.Fields = []genanki.Field{
 		{Name: "Front", Ord: 0, Font: "Arial", Size: 20, Color: "#000000", Align: "left"},
 		{Name: "Back", Ord: 1, Font: "Arial", Size: 20, Color: "#000000", Align: "left"},
+		{Name: "Markdown", Ord: 2, Font: "Arial", Size: 20, Color: "#000000", Align: "left"},
 	}
 
 	model.Templates = []genanki.Template{
