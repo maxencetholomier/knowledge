@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/maxencetholomier/knowledge/pkg/config"
 	"github.com/maxencetholomier/knowledge/pkg/files"
 
 	"github.com/spf13/cobra"
@@ -13,8 +14,9 @@ var imageCmd = &cobra.Command{
 	Aliases: []string{"i"},
 	Short:   "Create a new note with screenshot using Flameshot",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		cfg := config.Current
 		return files.CreateMediaNote(
-			DirZet, ScreenshotTool, ScreenshotParams, Terminal, TerminalParams,
+			DirZet, cfg.ScreenshotTool, cfg.ScreenshotParams, cfg.Terminal, cfg.TerminalParams,
 			".png", "image", imageUseNewTerminal,
 		)
 	},

@@ -8,7 +8,7 @@ import (
 
 func GetNotebookInfo(notebookName string) (string, string, error) {
 	if notebookName == "" {
-		notebookName = config.GetJoplinNotebook()
+		notebookName = config.Current.JoplinNotebook
 	}
 
 	var notebookId string

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/maxencetholomier/knowledge/pkg/anki"
+	"github.com/maxencetholomier/knowledge/pkg/config"
 	"github.com/maxencetholomier/knowledge/pkg/files"
 	"github.com/maxencetholomier/knowledge/pkg/prompt"
 	"os"
@@ -109,7 +110,7 @@ func ensureAnkiClosed() error {
 }
 
 func exportDecks(deckFiles []deckFile, importIntoAnki bool) error {
-	if err := files.EnsureDir(DirExport); err != nil {
+	if err := files.EnsureDir(config.Current.DirExport); err != nil {
 		return err
 	}
 
@@ -446,7 +447,7 @@ func processDeck(deck deckFile, noteTitleMap map[string]string) (*deckExportResu
 		result.Stats.NotesExported++
 	}
 
-	result.OutputPath = filepath.Join(DirExport, fmt.Sprintf("anki_cards_%s.apkg", deck.Name))
+	result.OutputPath = filepath.Join(config.Current.DirExport, fmt.Sprintf("anki_cards_%s.apkg", deck.Name))
 	if err := pkg.WriteToFile(result.OutputPath); err != nil {
 		return nil, fmt.Errorf("failed to write package: %w", err)
 	}

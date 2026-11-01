@@ -19,7 +19,7 @@ func (d *JoplinPlatformDetector) DetectPlatform(url string) string {
 }
 
 func buildJoplinURL(endpoint string, queryParams string) (string, error) {
-	token, err := config.GetJoplinToken()
+	token, err := config.JoplinToken()
 	if err != nil {
 		return "", err
 	}

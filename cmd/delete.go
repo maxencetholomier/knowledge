@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/maxencetholomier/knowledge/pkg/config"
 	"github.com/maxencetholomier/knowledge/pkg/utils"
 	"os"
 
@@ -13,7 +14,7 @@ var deleteCmd = &cobra.Command{
 	Short:   "Delete a note by line number from cache",
 	Long:    `Delete a note by specifying its line number from the last search or find result cache.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		fileName, err := utils.ResolveFileName(args, DirCache)
+		fileName, err := utils.ResolveFileName(args, config.DirCache)
 		if err != nil {
 			return err
 		}

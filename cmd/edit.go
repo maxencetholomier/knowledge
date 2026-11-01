@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/maxencetholomier/knowledge/pkg/config"
 	"github.com/maxencetholomier/knowledge/pkg/files"
 	"github.com/maxencetholomier/knowledge/pkg/utils"
 	"os"
@@ -15,7 +16,7 @@ var editCmd = &cobra.Command{
 	Short:   "Edit a note by line number from cache or timestamp",
 	RunE: func(cmd *cobra.Command, args []string) error {
 
-		fileName, err := utils.ResolveFileName(args, DirCache)
+		fileName, err := utils.ResolveFileName(args, config.DirCache)
 		if err != nil {
 			return err
 		}

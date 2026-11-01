@@ -11,7 +11,7 @@ import (
 )
 
 func Edit(filePath string) {
-	editor := config.GetEditor()
+	editor := config.Editor()
 	vim := exec.Command(editor, filePath)
 
 	vim.Stdin = os.Stdin

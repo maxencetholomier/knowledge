@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/maxencetholomier/knowledge/pkg/config"
 	"github.com/maxencetholomier/knowledge/pkg/files"
 
 	"github.com/spf13/cobra"
@@ -20,8 +21,9 @@ contain a markdown link in the format [Video](timestamp.mp4).
 
 The screenrecord command will be called with the target path where the video should be saved.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		cfg := config.Current
 		return files.CreateMediaNote(
-			DirZet, ScreenrecordTool, ScreenrecordParams, Terminal, TerminalParams,
+			DirZet, cfg.ScreenrecordTool, cfg.ScreenrecordParams, cfg.Terminal, cfg.TerminalParams,
 			".mp4", "video", videoUseNewTerminal,
 		)
 	},

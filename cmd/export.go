@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/maxencetholomier/knowledge/pkg/config"
 	"io"
 	"os"
 	"strings"
@@ -16,7 +17,7 @@ var exportCmd = &cobra.Command{
 	Long: `Export all notes and associated resources to classical markdown format
 with readable filenames based on note headers in the export directory.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := files.EnsureDir(DirExport); err != nil {
+		if err := files.EnsureDir(config.Current.DirExport); err != nil {
 			return err
 		}
 
@@ -54,7 +55,7 @@ func exportMarkdownFiles() error {
 			header = strings.TrimSuffix(file.Name, ".md")
 		}
 
-		newFiles, err := os.Create(DirExport + header + ".md")
+		newFiles, err := os.Create(config.Current.DirExport + header + ".md")
 		if err != nil {
 			return err
 		}
@@ -82,7 +83,7 @@ func exportResources() error {
 			}
 			defer sourceFile.Close()
 
-			destFile, err := os.Create(DirExport + file.Name)
+			destFile, err := os.Create(config.Current.DirExport + file.Name)
 			if err != nil {
 				return err
 			}

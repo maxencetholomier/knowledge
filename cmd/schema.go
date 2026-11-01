@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/maxencetholomier/knowledge/pkg/config"
 	"github.com/maxencetholomier/knowledge/pkg/files"
 
 	"github.com/spf13/cobra"
@@ -13,8 +14,9 @@ var schemaCmd = &cobra.Command{
 	Aliases: []string{"s"},
 	Short:   "Create a new note with diagram using Inkscape",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		cfg := config.Current
 		return files.CreateMediaNote(
-			DirZet, SchemaTool, SchemaToolParams, Terminal, TerminalParams,
+			DirZet, cfg.SchemaTool, cfg.SchemaToolParams, cfg.Terminal, cfg.TerminalParams,
 			".svg", "schema", schemaUseNewTerminal,
 		)
 	},

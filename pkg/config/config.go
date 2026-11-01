@@ -2,8 +2,11 @@ package config
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 )
@@ -26,231 +29,98 @@ type Config struct {
 	JoplinNotebook     string   `json:"joplinNotebook"`
 }
 
-const (
-	DirCache string = "/tmp/kl-search-cache"
-)
+const DirCache = "/tmp/kl-search-cache"
 
-var joplinToken string
-var homeDir string
-var FileJoplinConfig string
-var editor string
-var fzf bool
-var fzfOptions string
-var fzfTmuxOptions string
-var fzfEnv string
-var screenshotTool string
-var screenshotParams []string
-var screenrecordTool string
-var screenrecordParams []string
-var schemaTool string
-var schemaToolParams []string
-var terminal string
-var terminalParams []string
-var dirExport string
-var joplinNotebook string
-var initError error
+var Current Config
 
-func GetJoplinToken() (string, error) {
-	if initError != nil {
-		return "", initError
-	}
-	return joplinToken, nil
-}
+var joplinTokenPattern = regexp.MustCompile(`\s*"api.token":\s*"(.*)"`)
 
-func GetEditor() string {
-	return editor
-}
-
-func GetFzf() bool {
-	return fzf
-}
-
-func GetFzfEnv() string {
-	return fzfEnv
-}
-
-func GetFzfOptions() string {
-	return fzfOptions
-}
-
-func GetFzfTmuxOptions() string {
-	return fzfTmuxOptions
-}
-
-func GetScreenshotTool() string {
-	if screenshotTool == "" {
-		return "flameshot"
-	}
-	return screenshotTool
-}
-
-func GetScreenshotParams() []string {
-	if len(screenshotParams) == 0 {
-		return []string{"gui", "--path"}
-	}
-	return screenshotParams
-}
-
-func GetScreenrecordTool() string {
-	return screenrecordTool
-}
-
-func GetScreenrecordParams() []string {
-	return screenrecordParams
-}
-
-func GetSchemaTool() string {
-	if schemaTool == "" {
-		return "inkscape"
-	}
-	return schemaTool
-}
-
-func GetSchemaToolParams() []string {
-	if len(schemaToolParams) == 0 {
-		return []string{"--export-filename"}
-	}
-	return schemaToolParams
-}
-
-func GetTerminal() string {
-	if terminal == "" {
-		return "x-terminal-emulator"
-	}
-	return terminal
-}
-
-func GetTerminalParams() []string {
-	if len(terminalParams) == 0 {
-		return []string{"--execute"}
-	}
-	return terminalParams
-}
-
-func GetDirExport() string {
-	if dirExport == "" {
-		return "/tmp/kl-export/"
-	}
-	return dirExport
-}
-
-func GetJoplinNotebook() string {
-	return joplinNotebook
-}
-
-func CheckInitError() error {
-	return initError
-}
-
-func initHomeDir() error {
-	dir, err := os.UserHomeDir()
+func Load() error {
+	home, err := os.UserHomeDir()
 	if err != nil {
 		return fmt.Errorf("failed to read home directory: %w", err)
 	}
-	homeDir = dir
-	return nil
-}
 
-func initEditor() {
-	editor = os.Getenv("EDITOR")
-	if editor == "" {
-		editor = "vi"
+	data, err := os.ReadFile(filepath.Join(home, ".config", "kl", "config.json"))
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return fmt.Errorf("failed to read kl config file: %w", err)
 	}
-}
-
-func loadConfigFile() (*Config, error) {
-	filePath := homeDir + "/.config/kl/config.json"
-
-	data, err := os.ReadFile(filePath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read k config file: %w", err)
-	}
-
-	var config Config
-	err = json.Unmarshal(data, &config)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse k config file: %w", err)
-	}
-
-	return &config, nil
-}
-
-func setConfigVars(config *Config) {
-	fzf = config.FZF
-	fzfEnv = config.FZFEnv
-	fzfOptions = config.FZFOptions
-	fzfTmuxOptions = config.FZFTmuxOptions
-	screenshotTool = config.ScreenshotTool
-	screenshotParams = config.ScreenshotParams
-	screenrecordTool = config.ScreenrecordTool
-	screenrecordParams = config.ScreenrecordParams
-	schemaTool = config.SchemaTool
-	schemaToolParams = config.SchemaToolParams
-	terminal = config.Terminal
-	terminalParams = config.TerminalParams
-	dirExport = config.DirExport
-	joplinNotebook = config.JoplinNotebook
-}
-
-func joplinConfigCandidates() []string {
-	return []string{
-		homeDir + "/.config/joplin-desktop/settings.json",
-		homeDir + "/snap/joplin-desktop/current/.config/joplin-desktop/settings.json",
-		homeDir + "/.var/app/net.cozic.joplin_desktop/config/joplin-desktop/settings.json",
-	}
-}
-
-func initJoplin(config *Config) error {
-	if config.JoplinConfigFile != "" {
-		FileJoplinConfig = config.JoplinConfigFile
-	} else {
-		candidates := joplinConfigCandidates()
-		found := false
-		for _, candidate := range candidates {
-			if _, err := os.Stat(candidate); err == nil {
-				FileJoplinConfig = candidate
-				found = true
-				break
-			}
-		}
-		if !found {
-			return fmt.Errorf("joplin config file not found (tried: %s)", strings.Join(candidates, ", "))
+	if err == nil {
+		if err := json.Unmarshal(data, &Current); err != nil {
+			return fmt.Errorf("failed to parse kl config file: %w", err)
 		}
 	}
 
-	configFile, err := os.ReadFile(FileJoplinConfig)
-	if err != nil {
-		return fmt.Errorf("failed to read Joplin config file: %w", err)
-	}
-
-	re := regexp.MustCompile(`\s*"api.token":\s*"(.*)"`)
-	matches := re.FindStringSubmatch(string(configFile))
-
-	if len(matches) > 0 {
-		joplinToken = matches[1]
-	} else {
-		return fmt.Errorf("api-token not found in joplin config file")
-	}
+	applyDefaults(&Current)
 	return nil
 }
 
-func init() {
-	if err := initHomeDir(); err != nil {
-		initError = err
-		return
+func applyDefaults(c *Config) {
+	setDefault(&c.FZFEnv, "fzf")
+	setDefault(&c.ScreenshotTool, "flameshot")
+	setDefault(&c.SchemaTool, "inkscape")
+	setDefault(&c.Terminal, "x-terminal-emulator")
+	setDefault(&c.DirExport, "/tmp/kl-export/")
+	if len(c.ScreenshotParams) == 0 {
+		c.ScreenshotParams = []string{"gui", "--path"}
 	}
+	if len(c.SchemaToolParams) == 0 {
+		c.SchemaToolParams = []string{"--export-filename"}
+	}
+	if len(c.TerminalParams) == 0 {
+		c.TerminalParams = []string{"--execute"}
+	}
+}
 
-	config, err := loadConfigFile()
+func setDefault(field *string, value string) {
+	if *field == "" {
+		*field = value
+	}
+}
+
+func Editor() string {
+	if editor := os.Getenv("EDITOR"); editor != "" {
+		return editor
+	}
+	return "vi"
+}
+
+func JoplinToken() (string, error) {
+	file, err := joplinConfigFile()
 	if err != nil {
-		initError = err
-		return
+		return "", err
 	}
 
-	setConfigVars(config)
-	initEditor()
-
-	if err := initJoplin(config); err != nil {
-		initError = err
-		return
+	content, err := os.ReadFile(file)
+	if err != nil {
+		return "", fmt.Errorf("failed to read Joplin config file: %w", err)
 	}
+
+	matches := joplinTokenPattern.FindStringSubmatch(string(content))
+	if len(matches) < 2 {
+		return "", fmt.Errorf("api.token not found in %s", file)
+	}
+	return matches[1], nil
+}
+
+func joplinConfigFile() (string, error) {
+	if Current.JoplinConfigFile != "" {
+		return Current.JoplinConfigFile, nil
+	}
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	candidates := []string{
+		filepath.Join(home, ".config/joplin-desktop/settings.json"),
+		filepath.Join(home, "snap/joplin-desktop/current/.config/joplin-desktop/settings.json"),
+		filepath.Join(home, ".var/app/net.cozic.joplin_desktop/config/joplin-desktop/settings.json"),
+	}
+	for _, candidate := range candidates {
+		if _, err := os.Stat(candidate); err == nil {
+			return candidate, nil
+		}
+	}
+	return "", fmt.Errorf("joplin config file not found (tried: %s)", strings.Join(candidates, ", "))
 }
