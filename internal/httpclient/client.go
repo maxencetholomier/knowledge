@@ -4,10 +4,13 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 )
 
+var client = &http.Client{Timeout: 30 * time.Second}
+
 func Get(url string) ([]byte, error) {
-	resp, err := http.Get(url)
+	resp, err := client.Get(url)
 	if err != nil {
 		return nil, WrapConnectionError(fmt.Errorf("HTTP GET request failed for URL %s: %w", url, err), url)
 	}
@@ -32,7 +35,6 @@ func Delete(url string) error {
 		return err
 	}
 
-	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
 		return WrapConnectionError(err, url)
@@ -52,7 +54,6 @@ func Send(
 
 	req.Header.Set("Content-Type", contentType)
 
-	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, WrapConnectionError(FormatHTTPError(err, context, "HTTP request failed"), url)
