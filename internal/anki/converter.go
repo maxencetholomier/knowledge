@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
+	"html"
 	"io"
 	"math"
 	"os"
@@ -256,7 +257,8 @@ func (r *chromaRenderer) RenderNode(w io.Writer, node *blackfriday.Node, enterin
 		if language == "mermaid" {
 			data, filename, err := ConvertMermaidToPNG(string(node.Literal))
 			if err != nil {
-				fmt.Fprintf(w, `<pre><code>%s</code></pre>`, node.Literal)
+				fmt.Fprintf(os.Stderr, "mermaid rendering failed, falling back to code block: %v\n", err)
+				fmt.Fprintf(w, `<pre><code>%s</code></pre>`, html.EscapeString(string(node.Literal)))
 			} else {
 				r.mediaFiles = append(r.mediaFiles, MediaFile{
 					Filename: filename,
