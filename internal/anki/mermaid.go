@@ -1,80 +1,93 @@
 package anki
 
 import (
-	"bytes"
 	"context"
 	"crypto/sha256"
 	"fmt"
-	"github.com/maxencetholomier/knowledge/internal/tools"
 	"os"
 	"os/exec"
+	"sync"
 	"time"
+
+	"github.com/maxencetholomier/knowledge/internal/tools"
 )
 
 const mermaidRenderTimeout = 30 * time.Second
 
 const noSandboxPuppeteerConfig = `{"args":["--no-sandbox"]}`
 
-func isBrowserLaunchFailure(output []byte) bool {
-	return bytes.Contains(output, []byte("Failed to launch the browser process"))
-}
+const sandboxProbeDiagram = "graph TD\n  A-->B\n"
+
+var sandboxUnavailable = sync.OnceValue(func() bool {
+	if _, err := renderMermaid(sandboxProbeDiagram); err == nil {
+		return false
+	}
+
+	configPath, err := writeTempPuppeteerConfig()
+	if err != nil {
+		return false
+	}
+	defer os.Remove(configPath)
+
+	_, err = renderMermaid(sandboxProbeDiagram, "-p", configPath)
+	return err == nil
+})
 
 func ConvertMermaidToPNG(mermaidCode string) ([]byte, string, error) {
 	if err := tools.Require("mmdc"); err != nil {
 		return nil, "", err
 	}
 
-	hash := sha256.Sum256([]byte(mermaidCode))
-	filename := fmt.Sprintf("mermaid_%x.png", hash[:8])
+	var extraArgs []string
+	if sandboxUnavailable() {
+		configPath, err := writeTempPuppeteerConfig()
+		if err != nil {
+			return nil, "", err
+		}
+		defer os.Remove(configPath)
 
+		extraArgs = []string{"-p", configPath}
+	}
+
+	data, err := renderMermaid(mermaidCode, extraArgs...)
+	if err != nil {
+		return nil, "", err
+	}
+
+	hash := sha256.Sum256([]byte(mermaidCode))
+	return data, fmt.Sprintf("mermaid_%x.png", hash[:8]), nil
+}
+
+func renderMermaid(mermaidCode string, extraArgs ...string) ([]byte, error) {
 	tmpIn, err := os.CreateTemp("", "mermaid_*.mmd")
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to create temp input file: %w", err)
+		return nil, fmt.Errorf("failed to create temp input file: %w", err)
 	}
 	defer os.Remove(tmpIn.Name())
 
 	if _, err := tmpIn.WriteString(mermaidCode); err != nil {
 		tmpIn.Close()
-		return nil, "", fmt.Errorf("failed to write mermaid code: %w", err)
+		return nil, fmt.Errorf("failed to write mermaid code: %w", err)
 	}
 	tmpIn.Close()
 
 	tmpOut, err := os.CreateTemp("", "mermaid_*.png")
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to create temp output file: %w", err)
+		return nil, fmt.Errorf("failed to create temp output file: %w", err)
 	}
 	outPath := tmpOut.Name()
 	tmpOut.Close()
 	defer os.Remove(outPath)
 
-	run := func(extraArgs ...string) ([]byte, error) {
-		ctx, cancel := context.WithTimeout(context.Background(), mermaidRenderTimeout)
-		defer cancel()
+	ctx, cancel := context.WithTimeout(context.Background(), mermaidRenderTimeout)
+	defer cancel()
 
-		args := append([]string{"-i", tmpIn.Name(), "-o", outPath, "--backgroundColor", "white"}, extraArgs...)
-		return exec.CommandContext(ctx, "mmdc", args...).CombinedOutput()
+	args := append([]string{"-i", tmpIn.Name(), "-o", outPath, "--backgroundColor", "white"}, extraArgs...)
+	if output, err := exec.CommandContext(ctx, "mmdc", args...).CombinedOutput(); err != nil {
+		return nil, fmt.Errorf("mmdc conversion failed: %w\nOutput: %s", err, output)
 	}
 
-	output, err := run()
-	if err != nil && isBrowserLaunchFailure(output) {
-		configPath, configErr := writeTempPuppeteerConfig()
-		if configErr != nil {
-			return nil, "", configErr
-		}
-		defer os.Remove(configPath)
-
-		output, err = run("-p", configPath)
-	}
-	if err != nil {
-		return nil, "", fmt.Errorf("mmdc conversion failed: %w\nOutput: %s", err, output)
-	}
-
-	data, err := os.ReadFile(outPath)
-	if err != nil {
-		return nil, "", fmt.Errorf("failed to read generated PNG: %w", err)
-	}
-
-	return data, filename, nil
+	return os.ReadFile(outPath)
 }
 
 func writeTempPuppeteerConfig() (string, error) {
