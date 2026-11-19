@@ -3,6 +3,7 @@ package files
 import (
 	"fmt"
 	"github.com/maxencetholomier/knowledge/internal/config"
+	"github.com/maxencetholomier/knowledge/internal/tools"
 	"github.com/maxencetholomier/knowledge/internal/utils"
 	"os"
 	"os/exec"
@@ -12,6 +13,11 @@ import (
 
 func Edit(filePath string) {
 	editor := config.Editor()
+	if err := tools.Require(editor); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
 	vim := exec.Command(editor, filePath)
 
 	vim.Stdin = os.Stdin
@@ -71,9 +77,17 @@ func CreateMediaNote(
 	now := time.Now()
 	timestamp := now.Format("20060102150405")
 
+	if err := tools.Require(tool); err != nil {
+		return err
+	}
+
 	mediaArgs := append(toolParams, dirZet+"/"+timestamp+fileExtension)
 
 	if useNewTerminal {
+		if err := tools.Require(terminal); err != nil {
+			return err
+		}
+
 		terminalArgs := append(terminalParams, tool)
 		terminalArgs = append(terminalArgs, mediaArgs...)
 		_, err := exec.Command(terminal, terminalArgs...).Output()

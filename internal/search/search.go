@@ -2,6 +2,7 @@ package search
 
 import (
 	"github.com/maxencetholomier/knowledge/internal/files"
+	"github.com/maxencetholomier/knowledge/internal/tools"
 	"os/exec"
 	"regexp"
 )
@@ -129,6 +130,10 @@ type RipgrepSearcher struct {
 }
 
 func (r *RipgrepSearcher) Search(pattern string) ([]byte, error) {
+	if err := tools.Require("rg"); err != nil {
+		return nil, err
+	}
+
 	var args []string
 
 	if r.Colors {

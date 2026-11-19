@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"errors"
+	"os/exec"
 	"strings"
 
 	"github.com/maxencetholomier/knowledge/internal/files"
@@ -67,7 +69,11 @@ func printResultsGrep(results []search.SearchResult) error {
 func runInteractiveGrep(args []string) error {
 	rgOutput, err := presearchGrep(args)
 	if err != nil {
-		return nil
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) && exitErr.ExitCode() == 1 {
+			return nil
+		}
+		return err
 	}
 
 	selector := &ui.SearchSelector{Config: fzfConfig()}

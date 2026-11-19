@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"github.com/maxencetholomier/knowledge/internal/files"
+	"github.com/maxencetholomier/knowledge/internal/tools"
 	"os/exec"
 	"strings"
 )
@@ -18,6 +19,10 @@ type FileSelector struct {
 }
 
 func (fs *FileSelector) SelectFile(fileList []files.FileInfo, baseDir string) (string, error) {
+	if err := tools.Require(fs.Config.Command); err != nil {
+		return "", err
+	}
+
 	if len(fileList) == 0 {
 		return "", fmt.Errorf("no files to select from")
 	}
@@ -96,6 +101,10 @@ type SearchSelector struct {
 }
 
 func (ss *SearchSelector) SelectFromSearchResults(rgOutput []byte) (string, error) {
+	if err := tools.Require(ss.Config.Command); err != nil {
+		return "", err
+	}
+
 	if len(rgOutput) == 0 {
 		fmt.Println("No matches found")
 		return "", nil
