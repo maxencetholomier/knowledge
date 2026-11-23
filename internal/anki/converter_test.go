@@ -30,10 +30,11 @@ func TestExtractTitleAndBody(t *testing.T) {
 
 func TestDetectAndConvertTables(t *testing.T) {
 	cases := map[string]string{
-		"| a | b |\n| 1 | 2 |":            "| a | b |\n| --- | --- |\n| 1 | 2 |",
-		"| a | b |\n| 1 | 2 |\n|---|---|": "| a | b |\n|---|---|\n| 1 | 2 |",
-		"| a | b |\n|---|---|\n| 1 | 2 |": "| a | b |\n|---|---|\n| 1 | 2 |",
-		"text with | pipe\n\nparagraph":   "text with | pipe\n\nparagraph",
+		"| a | b |\n| 1 | 2 |":                    "| a | b |\n| --- | --- |\n| 1 | 2 |",
+		"| a | b |\n| 1 | 2 |\n|---|---|":         "| a | b |\n|---|---|\n| 1 | 2 |",
+		"| a | b |\n|---|---|\n| 1 | 2 |":         "| a | b |\n|---|---|\n| 1 | 2 |",
+		"text with | pipe\n\nparagraph":           "text with | pipe\n\nparagraph",
+		"```mermaid\nA -->|x| B\nB -->|y| C\n```": "```mermaid\nA -->|x| B\nB -->|y| C\n```",
 	}
 	for in, want := range cases {
 		if got := detectAndConvertTables(in); got != want {

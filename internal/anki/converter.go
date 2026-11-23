@@ -120,11 +120,16 @@ func detectAndConvertTables(content string) string {
 	lines := strings.Split(content, "\n")
 	var result []string
 	i := 0
+	inFence := false
 
 	for i < len(lines) {
 		line := lines[i]
 
-		if isTableRow(line) && !isSeparatorRow(line) {
+		if strings.HasPrefix(strings.TrimSpace(line), "```") {
+			inFence = !inFence
+		}
+
+		if !inFence && isTableRow(line) && !isSeparatorRow(line) {
 			tableStart := i
 			tableEnd := i
 
